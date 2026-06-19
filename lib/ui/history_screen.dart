@@ -7,6 +7,7 @@ import '../domain/work_logic.dart';
 import '../state/providers.dart';
 import 'theme.dart';
 import 'widgets/mode_chip.dart';
+import 'widgets/session_editor.dart';
 
 class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key});
@@ -200,6 +201,8 @@ class _DaysList extends StatelessWidget {
                         title: Text(
                             '${formatTime(s.clockIn)} → ${s.clockOut == null ? 'open' : formatTime(s.clockOut!)}'),
                         trailing: ModeChip(s.mode, compact: true),
+                        // Tap to edit or delete this session.
+                        onTap: () => showSessionEditor(context, existing: s),
                       ))
                   .toList(),
             ),
