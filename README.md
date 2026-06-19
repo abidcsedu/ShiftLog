@@ -12,14 +12,27 @@ month-wise **8h 30m per working day** target and a heat-map calendar.
 - **Sign In / Sign Out** with multiple sessions per day; the day's total is the cumulative
   sum of every session and ticks live (with seconds) while a session is open.
 - **Work modes** per session — Office, WFH, Outside Office — chosen from a dropdown.
+- **Project / ticket tagging** — tag a session to a project/client/ticket; a selector on
+  Home tags the next sign-in, the editor autocompletes from past projects, and Insights
+  breaks down monthly hours **by project**.
 - **Add / edit / delete** any session (with an optional note), including backfilling past days.
 - **Break-even time** — while clocked in, Home shows "Leave by 6:42 PM" to hit the target.
 - **Forgot-to-clock-out** — a session open over 16h shows a banner to end it.
-- **Notifications** — an ongoing notification while clocked in, plus clock-in/out confirmations.
+- **Home-screen widget** — shows today's office time and a Sign In / Sign Out button that
+  toggles the session in the background, without opening the app.
 
 **Office hours & schedule**
 - **Office hours** (start/end times) define the daily target; **Ramadan mode** switches to a
   shorter alternate schedule.
+
+**Notifications & reminders**
+- **Live notification** while clocked in, plus clock-in/out confirmations.
+- **Scheduled reminders** (Settings → Reminders) — a daily sign-in reminder at the office
+  start time, a sign-out reminder at the end time, and a weekly Sunday summary.
+
+**Notes**
+- A **Notes** tab for **daily journal** and **meeting** notes — title, body, tags, an
+  action-item checklist, pin, and search / filter. Included in backups.
 
 **Limits & balances**
 - **WFH limits** — max 2 / month and 12 / year, counted at the day level; Sign In is
@@ -43,10 +56,11 @@ month-wise **8h 30m per working day** target and a heat-map calendar.
   a leave log.
 
 **App & data**
-- Bottom-nav UI (Home / Insights / History / Settings); gradient hero with a goal-oriented
-  progress ring; light / dark theme (persisted; follows system by default).
+- Bottom-nav UI (Home / Notes / Insights / History / Settings); a calm, neutral Home hero
+  with a goal-oriented progress ring; light / dark theme (persisted; follows system by default).
 - **App lock** — optional device biometric/PIN to open the app.
-- **Local backup & restore** — JSON export/import (share sheet + file picker) and CSV export.
+- **Local backup & restore** — JSON export/import (share sheet + file picker, including
+  sessions, leaves, overrides and notes) and CSV export.
 
 ## Tech stack
 
@@ -57,20 +71,26 @@ month-wise **8h 30m per working day** target and a heat-map calendar.
 | State     | [Riverpod](https://riverpod.dev/) |
 | Routing   | [go_router](https://pub.dev/packages/go_router) (`StatefulShellRoute`) |
 | Charts    | [fl_chart](https://pub.dev/packages/fl_chart) |
+| Notifications | flutter_local_notifications · timezone · flutter_timezone |
+| Widget    | [home_widget](https://pub.dev/packages/home_widget) |
+| Security  | [local_auth](https://pub.dev/packages/local_auth) (biometric/PIN) |
 | Sharing   | share_plus · file_picker · path_provider |
 
 ## Project structure
 
 ```
 lib/
-  main.dart                 # app entry, theme wiring
+  main.dart                 # app entry, theme wiring, widget/reminder sync, app lock
   app/router.dart           # bottom-nav shell + routes
   data/
-    database.dart           # Drift tables + migrations (schema v4)
+    database.dart           # Drift tables + migrations (schema v8)
     repository.dart          # single data seam over Drift (swap for cloud later)
   domain/
     enums.dart, models.dart # framework-free types
     work_logic.dart         # pure, unit-tested business logic
+  services/
+    notification_service.dart # live + scheduled notifications (timezone-aware)
+    widget_service.dart       # home-screen widget sync + background toggle
   state/providers.dart      # Riverpod providers
   ui/
     theme.dart              # Material 3 design system + per-mode visuals
@@ -78,14 +98,16 @@ lib/
     dashboard_screen.dart   # Home
     monthly_screen.dart     # Insights
     history_screen.dart     # History (calendar + list + leaves)
+    notes_screen.dart       # Notes list (daily / meeting)
+    note_editor_screen.dart # Note editor with checklist
     settings_screen.dart    # Settings
     backup_actions.dart     # export / import helpers
     widgets/                # CounterCard, ModeChip, ProgressRing, SessionEditor
 ```
 
-Business logic operates on plain `WorkSession` / `LeaveEntry` models; the repository maps
-Drift rows to/from them, so moving to a cloud backend later means reimplementing only
-`repository.dart`.
+Business logic operates on plain `WorkSession` / `LeaveRecordModel` / `NoteModel` types; the
+repository maps Drift rows to/from them, so moving to a cloud backend later means
+reimplementing only `repository.dart`.
 
 ## Run
 
