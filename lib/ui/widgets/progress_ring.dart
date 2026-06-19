@@ -26,17 +26,26 @@ class ProgressRing extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final target = progress.clamp(0, 1).toDouble();
+    final arcColor = progress >= 1 ? completeColor : color;
     return SizedBox(
       width: size,
       height: size,
-      child: CustomPaint(
-        painter: _RingPainter(
-          progress: progress.clamp(0, 1).toDouble(),
-          stroke: stroke,
-          color: progress >= 1 ? completeColor : color,
-          trackColor: trackColor,
-        ),
+      // Sweep smoothly to the current value on load and whenever it changes.
+      child: TweenAnimationBuilder<double>(
+        tween: Tween(begin: 0, end: target),
+        duration: const Duration(milliseconds: 650),
+        curve: Curves.easeOutCubic,
         child: Center(child: child),
+        builder: (context, value, child) => CustomPaint(
+          painter: _RingPainter(
+            progress: value,
+            stroke: stroke,
+            color: arcColor,
+            trackColor: trackColor,
+          ),
+          child: child,
+        ),
       ),
     );
   }

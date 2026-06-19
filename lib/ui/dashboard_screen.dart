@@ -258,7 +258,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           // Big Sign In / Out button
           SizedBox(
             height: 60,
-            child: FilledButton.icon(
+            child: FilledButton(
               style: FilledButton.styleFrom(
                 backgroundColor: clockedIn
                     ? Theme.of(context).colorScheme.error
@@ -267,10 +267,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                     ? Theme.of(context).colorScheme.onError
                     : null,
               ),
-              icon: Icon(clockedIn ? Icons.logout : Icons.login),
-              label: Text(clockedIn ? 'Sign Out' : 'Sign In',
-                  style: const TextStyle(fontSize: 18)),
               onPressed: () => _toggleClock(today),
+              // Crossfade the label as the session state flips.
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                transitionBuilder: (c, anim) => FadeTransition(
+                  opacity: anim,
+                  child: ScaleTransition(
+                      scale: Tween(begin: 0.92, end: 1.0).animate(anim),
+                      child: c),
+                ),
+                child: Row(
+                  key: ValueKey(clockedIn),
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(clockedIn ? Icons.logout : Icons.login),
+                    const SizedBox(width: 8),
+                    Text(clockedIn ? 'Sign Out' : 'Sign In',
+                        style: const TextStyle(fontSize: 18)),
+                  ],
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 20),
@@ -375,6 +392,9 @@ class _TimerHero extends StatelessWidget {
       decoration: BoxDecoration(
         color: scheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: scheme.outlineVariant.withValues(alpha: 0.5),
+        ),
       ),
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
       child: Column(
