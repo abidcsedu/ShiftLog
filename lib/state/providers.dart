@@ -105,13 +105,6 @@ final leaveDaysMapProvider = Provider<Map<String, LeaveType>>((ref) {
 final selectedModeProvider =
     StateProvider<WorkMode>((ref) => WorkMode.office);
 
-// --- selected project/ticket for the NEXT clock-in (null => untagged) ---
-final selectedProjectProvider = StateProvider<String?>((ref) => null);
-
-// Distinct project names that appear in the logs (for suggestions).
-final projectsProvider = Provider<List<String>>(
-    (ref) => knownProjects(ref.watch(allSessionsProvider).value ?? const []));
-
 // --- derived counters (computed via pure work_logic) ---
 class WfhStatus {
   final int monthUsed, monthLimit, yearUsed, yearLimit;

@@ -9,7 +9,6 @@ class WorkSession {
   final DateTime? clockOut; // null => currently active
   final WorkMode mode;
   final String? note;
-  final String? project;
 
   const WorkSession({
     this.id,
@@ -18,7 +17,6 @@ class WorkSession {
     this.clockOut,
     required this.mode,
     this.note,
-    this.project,
   });
 
   bool get isOpen => clockOut == null;

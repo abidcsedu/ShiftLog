@@ -73,11 +73,6 @@ class _MonthlyScreenState extends ConsumerState<MonthlyScreen> {
 
     final days = stats.daily.keys.toList()..sort((a, b) => b.compareTo(a));
 
-    final byProject = hoursByProject(
-        sessions, int.parse(parts[0]), int.parse(parts[1]));
-    final projectRows = byProject.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Insights'),
@@ -221,17 +216,6 @@ class _MonthlyScreenState extends ConsumerState<MonthlyScreen> {
             const SizedBox(height: 20),
           ],
 
-          if (projectRows.isNotEmpty) ...[
-            Text('By project',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 12),
-            _ProjectBreakdown(rows: projectRows, total: stats.total),
-            const SizedBox(height: 20),
-          ],
-
           Text('Daily breakdown',
               style: Theme.of(context)
                   .textTheme
@@ -270,71 +254,6 @@ class _MonthlyScreenState extends ConsumerState<MonthlyScreen> {
 /// Formats an expected-days count: whole numbers plain, halves with one decimal.
 String _days(double v) =>
     v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1);
-
-/// Per-project worked time for the month, as proportional bars.
-class _ProjectBreakdown extends StatelessWidget {
-  final List<MapEntry<String, Duration>> rows;
-  final Duration total;
-  const _ProjectBreakdown({required this.rows, required this.total});
-
-  static const _palette = [
-    Color(0xFF4F46E5),
-    Color(0xFF0D9488),
-    Color(0xFFEA580C),
-    Color(0xFF9333EA),
-    Color(0xFFDC2626),
-    Color(0xFF2563EB),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final maxV = rows.first.value.inSeconds.clamp(1, 1 << 30);
-    return Card(
-      color: scheme.surfaceContainerHigh,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            for (var i = 0; i < rows.length; i++) ...[
-              if (i > 0) const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      rows[i].key,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: rows[i].key == untaggedProject
-                              ? scheme.onSurfaceVariant
-                              : scheme.onSurface),
-                    ),
-                  ),
-                  Text(formatDuration(rows[i].value),
-                      style: TextStyle(
-                          color: scheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w600)),
-                ],
-              ),
-              const SizedBox(height: 6),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: LinearProgressIndicator(
-                  value: rows[i].value.inSeconds / maxV,
-                  minHeight: 8,
-                  backgroundColor: scheme.surfaceContainerHighest,
-                  color: _palette[i % _palette.length],
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 /// Bar chart of worked hours per day for the month, with a target line.
 class _HoursChart extends StatelessWidget {
