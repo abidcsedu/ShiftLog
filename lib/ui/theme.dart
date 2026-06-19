@@ -1,71 +1,108 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../domain/enums.dart';
 
-/// Central design system for ShiftLog — one seed, Material 3, light + dark.
+/// Central design system for ShiftLog — a refined, cool-tinted dark palette
+/// with a modern typeface and an indigo→violet brand gradient.
 class AppTheme {
-  static const Color seed = Color(0xFF4F46E5); // indigo
+  static const Color seed = Color(0xFF6366F1); // indigo-500
 
-  static ThemeData light() => _base(Brightness.light);
-  static ThemeData dark() => _base(Brightness.dark);
+  /// Signature accent gradient used on the ring, primary actions, etc.
+  static const LinearGradient brandGradient = LinearGradient(
+    colors: [Color(0xFF6366F1), Color(0xFF9333EA)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
 
-  static ThemeData _base(Brightness brightness) {
-    final scheme = ColorScheme.fromSeed(seedColor: seed, brightness: brightness);
+  static ThemeData light() {
+    final scheme = ColorScheme.fromSeed(seedColor: seed);
+    return _build(scheme);
+  }
+
+  static ThemeData dark() {
+    final base = ColorScheme.fromSeed(
+        seedColor: seed, brightness: Brightness.dark);
+    // Cool near-black surfaces with clear elevation steps for real depth.
+    final scheme = base.copyWith(
+      primary: const Color(0xFF818CF8),
+      onPrimary: const Color(0xFF111324),
+      surface: const Color(0xFF0E1014),
+      onSurface: const Color(0xFFECEEF2),
+      onSurfaceVariant: const Color(0xFF9BA1AE),
+      surfaceContainerLowest: const Color(0xFF0A0C0F),
+      surfaceContainerLow: const Color(0xFF141720),
+      surfaceContainer: const Color(0xFF181B24),
+      surfaceContainerHigh: const Color(0xFF1D212B),
+      surfaceContainerHighest: const Color(0xFF262B37),
+      outlineVariant: const Color(0xFF2B2F3A),
+    );
+    return _build(scheme);
+  }
+
+  static ThemeData _build(ColorScheme scheme) {
+    final textTheme = GoogleFonts.plusJakartaSansTextTheme(
+      ThemeData(brightness: scheme.brightness).textTheme,
+    ).apply(bodyColor: scheme.onSurface, displayColor: scheme.onSurface);
+
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
       scaffoldBackgroundColor: scheme.surface,
+      textTheme: textTheme,
       appBarTheme: AppBarTheme(
         backgroundColor: scheme.surface,
         foregroundColor: scheme.onSurface,
         centerTitle: false,
-        scrolledUnderElevation: 1,
-        titleTextStyle: TextStyle(
-          color: scheme.onSurface,
+        scrolledUnderElevation: 0,
+        titleTextStyle: textTheme.titleLarge?.copyWith(
           fontSize: 22,
-          fontWeight: FontWeight.w700,
-          letterSpacing: -0.2,
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.4,
         ),
       ),
       cardTheme: CardThemeData(
         elevation: 0,
         clipBehavior: Clip.antiAlias,
         margin: EdgeInsets.zero,
-        // Hairline border gives surfaces crisp definition on the dark theme
-        // without resorting to heavy shadows.
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(22),
           side: BorderSide(
-            color: scheme.outlineVariant.withValues(alpha: 0.5),
+            color: scheme.outlineVariant.withValues(alpha: 0.6),
           ),
-        ),
-      ),
-      navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: scheme.surface,
-        elevation: 0,
-        indicatorColor: scheme.primary.withValues(alpha: 0.16),
-        labelTextStyle: WidgetStateProperty.all(
-          const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          textStyle:
-              const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+          textStyle: textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700, fontSize: 16),
         ),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: scheme.primary,
+        foregroundColor: scheme.onPrimary,
+        elevation: 0,
+        highlightElevation: 0,
+        extendedTextStyle:
+            textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: scheme.surfaceContainerHighest.withValues(alpha: 0.4),
+        fillColor: scheme.surfaceContainerHigh,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: scheme.outlineVariant),
+          borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: scheme.outlineVariant),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: scheme.primary, width: 1.5),
         ),
       ),
       chipTheme: ChipThemeData(
@@ -73,8 +110,20 @@ class AppTheme {
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         side: BorderSide.none,
       ),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: scheme.surface,
+        elevation: 0,
+        height: 66,
+        indicatorColor: scheme.primary.withValues(alpha: 0.18),
+        labelTextStyle: WidgetStateProperty.all(textTheme.labelMedium
+            ?.copyWith(fontWeight: FontWeight.w600, fontSize: 12)),
+      ),
       listTileTheme: const ListTileThemeData(
         contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      ),
+      dividerTheme: DividerThemeData(
+        color: scheme.outlineVariant.withValues(alpha: 0.6),
+        space: 1,
       ),
     );
   }
@@ -88,8 +137,8 @@ class ModeVisual {
 }
 
 ModeVisual modeVisual(WorkMode mode) => switch (mode) {
-      WorkMode.office => const ModeVisual(Color(0xFF4F46E5), Icons.business),
-      WorkMode.wfh => const ModeVisual(Color(0xFF0D9488), Icons.home_work),
+      WorkMode.office => const ModeVisual(Color(0xFF818CF8), Icons.business),
+      WorkMode.wfh => const ModeVisual(Color(0xFF2DD4BF), Icons.home_work),
       WorkMode.outside =>
-        const ModeVisual(Color(0xFFEA580C), Icons.directions_walk),
+        const ModeVisual(Color(0xFFFB923C), Icons.directions_walk),
     };

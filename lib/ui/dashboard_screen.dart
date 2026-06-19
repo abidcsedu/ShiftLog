@@ -255,37 +255,54 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
           const SizedBox(height: 16),
 
-          // Big Sign In / Out button
-          SizedBox(
+          // Big Sign In / Out button — brand gradient to sign in, solid red to
+          // sign out, with a soft accent glow while idle.
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
             height: 60,
-            child: FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: clockedIn
-                    ? Theme.of(context).colorScheme.error
-                    : null,
-                foregroundColor: clockedIn
-                    ? Theme.of(context).colorScheme.onError
-                    : null,
-              ),
-              onPressed: () => _toggleClock(today),
-              // Crossfade the label as the session state flips.
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 250),
-                transitionBuilder: (c, anim) => FadeTransition(
-                  opacity: anim,
-                  child: ScaleTransition(
-                      scale: Tween(begin: 0.92, end: 1.0).animate(anim),
-                      child: c),
-                ),
-                child: Row(
-                  key: ValueKey(clockedIn),
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(clockedIn ? Icons.logout : Icons.login),
-                    const SizedBox(width: 8),
-                    Text(clockedIn ? 'Sign Out' : 'Sign In',
-                        style: const TextStyle(fontSize: 18)),
-                  ],
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              gradient: clockedIn ? null : AppTheme.brandGradient,
+              color: clockedIn ? Theme.of(context).colorScheme.error : null,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: clockedIn
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: AppTheme.seed.withValues(alpha: 0.35),
+                        blurRadius: 22,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => _toggleClock(today),
+                child: Center(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    transitionBuilder: (c, anim) => FadeTransition(
+                      opacity: anim,
+                      child: ScaleTransition(
+                          scale: Tween(begin: 0.92, end: 1.0).animate(anim),
+                          child: c),
+                    ),
+                    child: Row(
+                      key: ValueKey(clockedIn),
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(clockedIn ? Icons.logout : Icons.login,
+                            color: Colors.white),
+                        const SizedBox(width: 8),
+                        Text(clockedIn ? 'Sign Out' : 'Sign In',
+                            style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white)),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -416,6 +433,7 @@ class _TimerHero extends StatelessWidget {
             color: ringColor,
             completeColor: completeColor,
             trackColor: scheme.surfaceContainerHighest,
+            gradient: met ? null : AppTheme.brandGradient.colors,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
