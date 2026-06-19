@@ -5,6 +5,7 @@ import '../domain/enums.dart';
 import '../domain/models.dart';
 import '../state/providers.dart';
 import 'note_editor_screen.dart';
+import 'widgets/folder_picker.dart';
 
 class NotesScreen extends ConsumerStatefulWidget {
   const NotesScreen({super.key});
@@ -16,31 +17,103 @@ class NotesScreen extends ConsumerStatefulWidget {
 class _NotesScreenState extends ConsumerState<NotesScreen> {
   String _query = '';
   NoteKind? _filter; // null = all
+  int? _folderId; // current folder (null = top level)
 
-  void _open(NoteModel? note) {
+  void _openNote(NoteModel? note) {
     Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => NoteEditorScreen(existing: note),
+      builder: (_) =>
+          NoteEditorScreen(existing: note, initialFolderId: _folderId),
     ));
+  }
+
+  Future<void> _newFolder() async {
+    final name = await promptFolderName(context);
+    if (name == null) return;
+    await ref.read(repositoryProvider).createFolder(name, parentId: _folderId);
+  }
+
+  Future<void> _renameFolder(FolderModel f) async {
+    final name = await promptFolderName(context, initial: f.name);
+    if (name == null) return;
+    await ref.read(repositoryProvider).renameFolder(f.id!, name);
+  }
+
+  Future<void> _deleteFolder(FolderModel f) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete “${f.name}”?'),
+        content: const Text(
+            'Its notes and subfolders move up one level — nothing is deleted.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (ok == true) await ref.read(repositoryProvider).deleteFolder(f.id!);
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final all = ref.watch(notesProvider).value ?? const [];
+    final allNotes = ref.watch(notesProvider).value ?? const [];
+    final allFolders = ref.watch(foldersProvider).value ?? const [];
+    final searching = _query.trim().isNotEmpty;
     final q = _query.trim().toLowerCase();
-    final notes = all.where((n) {
+
+    final current =
+        _folderId == null ? null : _byId(allFolders, _folderId);
+    // If the current folder was deleted elsewhere, fall back to root.
+    if (_folderId != null && current == null) {
+      WidgetsBinding.instance.addPostFrameCallback(
+          (_) => mounted ? setState(() => _folderId = null) : null);
+    }
+
+    bool matchesQuery(NoteModel n) =>
+        n.title.toLowerCase().contains(q) ||
+        n.body.toLowerCase().contains(q) ||
+        n.tags.any((t) => t.toLowerCase().contains(q));
+
+    // When searching, look across every note; otherwise show this folder's.
+    final notes = allNotes.where((n) {
       if (_filter != null && n.kind != _filter) return false;
-      if (q.isEmpty) return true;
-      return n.title.toLowerCase().contains(q) ||
-          n.body.toLowerCase().contains(q) ||
-          n.tags.any((t) => t.toLowerCase().contains(q));
+      if (searching) return matchesQuery(n);
+      return n.folderId == _folderId;
     }).toList();
 
+    final subfolders = searching
+        ? const <FolderModel>[]
+        : (allFolders.where((f) => f.parentId == _folderId).toList()
+          ..sort((a, b) =>
+              a.name.toLowerCase().compareTo(b.name.toLowerCase())));
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Notes')),
+      appBar: AppBar(
+        leading: _folderId != null
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () =>
+                    setState(() => _folderId = current?.parentId),
+              )
+            : null,
+        title: Text(current?.name ?? 'Notes'),
+        actions: [
+          IconButton(
+            tooltip: 'New folder',
+            icon: const Icon(Icons.create_new_folder_outlined),
+            onPressed: _newFolder,
+          ),
+          const SizedBox(width: 4),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _open(null),
-        icon: const Icon(Icons.edit_note),
+        onPressed: () => _openNote(null),
+        icon: const Icon(Icons.edit_outlined),
         label: const Text('New note'),
       ),
       body: Column(
@@ -51,7 +124,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
               onChanged: (v) => setState(() => _query = v),
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.search),
-                hintText: 'Search notes',
+                hintText: 'Search all notes',
                 isDense: true,
                 filled: true,
                 fillColor: scheme.surfaceContainerHigh,
@@ -59,44 +132,48 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
                   borderRadius: BorderRadius.circular(14),
                   borderSide: BorderSide.none,
                 ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide.none,
+                ),
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              children: [
-                _filterChip('All', null),
-                const SizedBox(width: 8),
-                _filterChip('Daily', NoteKind.daily),
-                const SizedBox(width: 8),
-                _filterChip('Meeting', NoteKind.meeting),
-              ],
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _filterChip('All', null),
+                  const SizedBox(width: 8),
+                  _filterChip('Daily', NoteKind.daily),
+                  const SizedBox(width: 8),
+                  _filterChip('Meeting', NoteKind.meeting),
+                ],
+              ),
             ),
           ),
           Expanded(
-            child: notes.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.sticky_note_2_outlined,
-                            size: 44, color: scheme.onSurfaceVariant),
-                        const SizedBox(height: 12),
-                        Text(
-                            all.isEmpty
-                                ? 'No notes yet.\nTap “New note” to start.'
-                                : 'No matching notes.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: scheme.onSurfaceVariant)),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
+            child: (notes.isEmpty && subfolders.isEmpty)
+                ? _empty(scheme, allNotes.isEmpty && allFolders.isEmpty)
+                : ListView(
                     padding: const EdgeInsets.fromLTRB(12, 8, 12, 96),
-                    itemCount: notes.length,
-                    itemBuilder: (_, i) =>
-                        _NoteCard(note: notes[i], onTap: () => _open(notes[i])),
+                    children: [
+                      for (final f in subfolders)
+                        _FolderTile(
+                          folder: f,
+                          count: _countIn(allNotes, allFolders, f.id),
+                          onTap: () => setState(() => _folderId = f.id),
+                          onRename: () => _renameFolder(f),
+                          onDelete: () => _deleteFolder(f),
+                        ),
+                      if (subfolders.isNotEmpty && notes.isNotEmpty)
+                        const SizedBox(height: 4),
+                      for (final n in notes)
+                        _NoteCard(note: n, onTap: () => _openNote(n)),
+                    ],
                   ),
           ),
         ],
@@ -104,11 +181,117 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     );
   }
 
+  Widget _empty(ColorScheme scheme, bool totallyEmpty) => Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.sticky_note_2_outlined,
+                size: 44, color: scheme.onSurfaceVariant),
+            const SizedBox(height: 12),
+            Text(
+                _query.trim().isNotEmpty
+                    ? 'No matching notes.'
+                    : (totallyEmpty
+                        ? 'No notes yet.\nTap “New note” to start.'
+                        : 'This folder is empty.'),
+                textAlign: TextAlign.center,
+                style: TextStyle(color: scheme.onSurfaceVariant)),
+          ],
+        ),
+      );
+
   Widget _filterChip(String label, NoteKind? kind) => ChoiceChip(
         label: Text(label),
         selected: _filter == kind,
+        showCheckmark: false,
         onSelected: (_) => setState(() => _filter = kind),
       );
+
+  static FolderModel? _byId(List<FolderModel> all, int? id) {
+    for (final f in all) {
+      if (f.id == id) return f;
+    }
+    return null;
+  }
+
+  /// Notes directly in a folder plus all of its descendants.
+  static int _countIn(
+      List<NoteModel> notes, List<FolderModel> folders, int? folderId) {
+    final ids = <int?>{folderId};
+    var added = true;
+    while (added) {
+      added = false;
+      for (final f in folders) {
+        if (ids.contains(f.parentId) && !ids.contains(f.id)) {
+          ids.add(f.id);
+          added = true;
+        }
+      }
+    }
+    return notes.where((n) => ids.contains(n.folderId)).length;
+  }
+}
+
+class _FolderTile extends StatelessWidget {
+  final FolderModel folder;
+  final int count;
+  final VoidCallback onTap;
+  final VoidCallback onRename;
+  final VoidCallback onDelete;
+  const _FolderTile({
+    required this.folder,
+    required this.count,
+    required this.onTap,
+    required this.onRename,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      color: scheme.surfaceContainerHigh,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: scheme.primary.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.folder_rounded,
+                    color: scheme.primary, size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(folder.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700, fontSize: 16)),
+              ),
+              Text('$count',
+                  style: TextStyle(color: scheme.onSurfaceVariant)),
+              PopupMenuButton<String>(
+                icon: Icon(Icons.more_vert, color: scheme.onSurfaceVariant),
+                onSelected: (v) => v == 'rename' ? onRename() : onDelete(),
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: 'rename', child: Text('Rename')),
+                  PopupMenuItem(value: 'delete', child: Text('Delete')),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _NoteCard extends StatelessWidget {
@@ -137,8 +320,8 @@ class _NoteCard extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: accent.withValues(alpha: 0.14),
                       borderRadius: BorderRadius.circular(8),
@@ -159,7 +342,8 @@ class _NoteCard extends StatelessWidget {
                   ),
                   const Spacer(),
                   if (note.pinned)
-                    Icon(Icons.push_pin, size: 14, color: scheme.onSurfaceVariant),
+                    Icon(Icons.push_pin,
+                        size: 14, color: scheme.onSurfaceVariant),
                   const SizedBox(width: 6),
                   Text(_pretty(note.date),
                       style: TextStyle(
@@ -183,7 +367,8 @@ class _NoteCard extends StatelessWidget {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Icon(Icons.checklist, size: 16, color: scheme.onSurfaceVariant),
+                    Icon(Icons.checklist,
+                        size: 16, color: scheme.onSurfaceVariant),
                     const SizedBox(width: 6),
                     Text('$done/$total done',
                         style: TextStyle(

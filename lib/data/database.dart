@@ -81,6 +81,14 @@ class LeaveRecords extends Table {
   DateTimeColumn get appliedOn => dateTime()();
 }
 
+// Folders (and subfolders via parentId) that organise notes.
+class Folders extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  IntColumn get parentId => integer().nullable()(); // null = top level
+  DateTimeColumn get createdAt => dateTime()();
+}
+
 // Work-contextual notes: a daily journal entry or a meeting note.
 class Notes extends Table {
   IntColumn get id => integer().autoIncrement()();
@@ -92,6 +100,7 @@ class Notes extends Table {
   // Action items as a JSON array of {"text":..,"done":bool}.
   TextColumn get checklist => text().withDefault(const Constant('[]'))();
   BoolColumn get pinned => boolean().withDefault(const Constant(false))();
+  IntColumn get folderId => integer().nullable()(); // null = unfiled
   DateTimeColumn get updatedAt => dateTime()();
 }
 
@@ -112,14 +121,15 @@ class DayOverrides extends Table {
   LeaveLogs,
   DayOverrides,
   LeaveRecords,
-  Notes
+  Notes,
+  Folders
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
       : super(executor ?? driftDatabase(name: 'shiftlog'));
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -156,6 +166,10 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(userSettings, userSettings.remindClockIn);
             await m.addColumn(userSettings, userSettings.remindClockOut);
             await m.addColumn(userSettings, userSettings.remindWeekly);
+          }
+          if (from < 9) {
+            await m.createTable(folders);
+            await m.addColumn(notes, notes.folderId);
           }
         },
       );
@@ -211,4 +225,8 @@ class AppDatabase extends _$AppDatabase {
         ]))
       .watch();
   Future<List<Note>> notesOnce() => select(notes).get();
+
+  Stream<List<Folder>> watchFolders() =>
+      (select(folders)..orderBy([(t) => OrderingTerm.asc(t.name)])).watch();
+  Future<List<Folder>> foldersOnce() => select(folders).get();
 }

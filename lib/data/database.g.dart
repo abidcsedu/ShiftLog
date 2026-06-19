@@ -2696,6 +2696,17 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _folderIdMeta = const VerificationMeta(
+    'folderId',
+  );
+  @override
+  late final GeneratedColumn<int> folderId = GeneratedColumn<int>(
+    'folder_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _updatedAtMeta = const VerificationMeta(
     'updatedAt',
   );
@@ -2717,6 +2728,7 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
     tags,
     checklist,
     pinned,
+    folderId,
     updatedAt,
   ];
   @override
@@ -2780,6 +2792,12 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
         pinned.isAcceptableOrUnknown(data['pinned']!, _pinnedMeta),
       );
     }
+    if (data.containsKey('folder_id')) {
+      context.handle(
+        _folderIdMeta,
+        folderId.isAcceptableOrUnknown(data['folder_id']!, _folderIdMeta),
+      );
+    }
     if (data.containsKey('updated_at')) {
       context.handle(
         _updatedAtMeta,
@@ -2829,6 +2847,10 @@ class $NotesTable extends Notes with TableInfo<$NotesTable, Note> {
         DriftSqlType.bool,
         data['${effectivePrefix}pinned'],
       )!,
+      folderId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}folder_id'],
+      ),
       updatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}updated_at'],
@@ -2851,6 +2873,7 @@ class Note extends DataClass implements Insertable<Note> {
   final String tags;
   final String checklist;
   final bool pinned;
+  final int? folderId;
   final DateTime updatedAt;
   const Note({
     required this.id,
@@ -2861,6 +2884,7 @@ class Note extends DataClass implements Insertable<Note> {
     required this.tags,
     required this.checklist,
     required this.pinned,
+    this.folderId,
     required this.updatedAt,
   });
   @override
@@ -2874,6 +2898,9 @@ class Note extends DataClass implements Insertable<Note> {
     map['tags'] = Variable<String>(tags);
     map['checklist'] = Variable<String>(checklist);
     map['pinned'] = Variable<bool>(pinned);
+    if (!nullToAbsent || folderId != null) {
+      map['folder_id'] = Variable<int>(folderId);
+    }
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
   }
@@ -2888,6 +2915,9 @@ class Note extends DataClass implements Insertable<Note> {
       tags: Value(tags),
       checklist: Value(checklist),
       pinned: Value(pinned),
+      folderId: folderId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(folderId),
       updatedAt: Value(updatedAt),
     );
   }
@@ -2906,6 +2936,7 @@ class Note extends DataClass implements Insertable<Note> {
       tags: serializer.fromJson<String>(json['tags']),
       checklist: serializer.fromJson<String>(json['checklist']),
       pinned: serializer.fromJson<bool>(json['pinned']),
+      folderId: serializer.fromJson<int?>(json['folderId']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
   }
@@ -2921,6 +2952,7 @@ class Note extends DataClass implements Insertable<Note> {
       'tags': serializer.toJson<String>(tags),
       'checklist': serializer.toJson<String>(checklist),
       'pinned': serializer.toJson<bool>(pinned),
+      'folderId': serializer.toJson<int?>(folderId),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
   }
@@ -2934,6 +2966,7 @@ class Note extends DataClass implements Insertable<Note> {
     String? tags,
     String? checklist,
     bool? pinned,
+    Value<int?> folderId = const Value.absent(),
     DateTime? updatedAt,
   }) => Note(
     id: id ?? this.id,
@@ -2944,6 +2977,7 @@ class Note extends DataClass implements Insertable<Note> {
     tags: tags ?? this.tags,
     checklist: checklist ?? this.checklist,
     pinned: pinned ?? this.pinned,
+    folderId: folderId.present ? folderId.value : this.folderId,
     updatedAt: updatedAt ?? this.updatedAt,
   );
   Note copyWithCompanion(NotesCompanion data) {
@@ -2956,6 +2990,7 @@ class Note extends DataClass implements Insertable<Note> {
       tags: data.tags.present ? data.tags.value : this.tags,
       checklist: data.checklist.present ? data.checklist.value : this.checklist,
       pinned: data.pinned.present ? data.pinned.value : this.pinned,
+      folderId: data.folderId.present ? data.folderId.value : this.folderId,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
   }
@@ -2971,6 +3006,7 @@ class Note extends DataClass implements Insertable<Note> {
           ..write('tags: $tags, ')
           ..write('checklist: $checklist, ')
           ..write('pinned: $pinned, ')
+          ..write('folderId: $folderId, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
         .toString();
@@ -2986,6 +3022,7 @@ class Note extends DataClass implements Insertable<Note> {
     tags,
     checklist,
     pinned,
+    folderId,
     updatedAt,
   );
   @override
@@ -3000,6 +3037,7 @@ class Note extends DataClass implements Insertable<Note> {
           other.tags == this.tags &&
           other.checklist == this.checklist &&
           other.pinned == this.pinned &&
+          other.folderId == this.folderId &&
           other.updatedAt == this.updatedAt);
 }
 
@@ -3012,6 +3050,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
   final Value<String> tags;
   final Value<String> checklist;
   final Value<bool> pinned;
+  final Value<int?> folderId;
   final Value<DateTime> updatedAt;
   const NotesCompanion({
     this.id = const Value.absent(),
@@ -3022,6 +3061,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
     this.tags = const Value.absent(),
     this.checklist = const Value.absent(),
     this.pinned = const Value.absent(),
+    this.folderId = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
   NotesCompanion.insert({
@@ -3033,6 +3073,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
     this.tags = const Value.absent(),
     this.checklist = const Value.absent(),
     this.pinned = const Value.absent(),
+    this.folderId = const Value.absent(),
     required DateTime updatedAt,
   }) : kind = Value(kind),
        date = Value(date),
@@ -3046,6 +3087,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
     Expression<String>? tags,
     Expression<String>? checklist,
     Expression<bool>? pinned,
+    Expression<int>? folderId,
     Expression<DateTime>? updatedAt,
   }) {
     return RawValuesInsertable({
@@ -3057,6 +3099,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
       if (tags != null) 'tags': tags,
       if (checklist != null) 'checklist': checklist,
       if (pinned != null) 'pinned': pinned,
+      if (folderId != null) 'folder_id': folderId,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
   }
@@ -3070,6 +3113,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
     Value<String>? tags,
     Value<String>? checklist,
     Value<bool>? pinned,
+    Value<int?>? folderId,
     Value<DateTime>? updatedAt,
   }) {
     return NotesCompanion(
@@ -3081,6 +3125,7 @@ class NotesCompanion extends UpdateCompanion<Note> {
       tags: tags ?? this.tags,
       checklist: checklist ?? this.checklist,
       pinned: pinned ?? this.pinned,
+      folderId: folderId ?? this.folderId,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
@@ -3112,6 +3157,9 @@ class NotesCompanion extends UpdateCompanion<Note> {
     if (pinned.present) {
       map['pinned'] = Variable<bool>(pinned.value);
     }
+    if (folderId.present) {
+      map['folder_id'] = Variable<int>(folderId.value);
+    }
     if (updatedAt.present) {
       map['updated_at'] = Variable<DateTime>(updatedAt.value);
     }
@@ -3129,7 +3177,306 @@ class NotesCompanion extends UpdateCompanion<Note> {
           ..write('tags: $tags, ')
           ..write('checklist: $checklist, ')
           ..write('pinned: $pinned, ')
+          ..write('folderId: $folderId, ')
           ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $FoldersTable extends Folders with TableInfo<$FoldersTable, Folder> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FoldersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _parentIdMeta = const VerificationMeta(
+    'parentId',
+  );
+  @override
+  late final GeneratedColumn<int> parentId = GeneratedColumn<int>(
+    'parent_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, name, parentId, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'folders';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Folder> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('parent_id')) {
+      context.handle(
+        _parentIdMeta,
+        parentId.isAcceptableOrUnknown(data['parent_id']!, _parentIdMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Folder map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Folder(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      parentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}parent_id'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $FoldersTable createAlias(String alias) {
+    return $FoldersTable(attachedDatabase, alias);
+  }
+}
+
+class Folder extends DataClass implements Insertable<Folder> {
+  final int id;
+  final String name;
+  final int? parentId;
+  final DateTime createdAt;
+  const Folder({
+    required this.id,
+    required this.name,
+    this.parentId,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['name'] = Variable<String>(name);
+    if (!nullToAbsent || parentId != null) {
+      map['parent_id'] = Variable<int>(parentId);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  FoldersCompanion toCompanion(bool nullToAbsent) {
+    return FoldersCompanion(
+      id: Value(id),
+      name: Value(name),
+      parentId: parentId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(parentId),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory Folder.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Folder(
+      id: serializer.fromJson<int>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      parentId: serializer.fromJson<int?>(json['parentId']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'name': serializer.toJson<String>(name),
+      'parentId': serializer.toJson<int?>(parentId),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  Folder copyWith({
+    int? id,
+    String? name,
+    Value<int?> parentId = const Value.absent(),
+    DateTime? createdAt,
+  }) => Folder(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    parentId: parentId.present ? parentId.value : this.parentId,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  Folder copyWithCompanion(FoldersCompanion data) {
+    return Folder(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      parentId: data.parentId.present ? data.parentId.value : this.parentId,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Folder(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('parentId: $parentId, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, name, parentId, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Folder &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.parentId == this.parentId &&
+          other.createdAt == this.createdAt);
+}
+
+class FoldersCompanion extends UpdateCompanion<Folder> {
+  final Value<int> id;
+  final Value<String> name;
+  final Value<int?> parentId;
+  final Value<DateTime> createdAt;
+  const FoldersCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.parentId = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  FoldersCompanion.insert({
+    this.id = const Value.absent(),
+    required String name,
+    this.parentId = const Value.absent(),
+    required DateTime createdAt,
+  }) : name = Value(name),
+       createdAt = Value(createdAt);
+  static Insertable<Folder> custom({
+    Expression<int>? id,
+    Expression<String>? name,
+    Expression<int>? parentId,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (parentId != null) 'parent_id': parentId,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  FoldersCompanion copyWith({
+    Value<int>? id,
+    Value<String>? name,
+    Value<int?>? parentId,
+    Value<DateTime>? createdAt,
+  }) {
+    return FoldersCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      parentId: parentId ?? this.parentId,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (parentId.present) {
+      map['parent_id'] = Variable<int>(parentId.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FoldersCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('parentId: $parentId, ')
+          ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
@@ -3144,6 +3491,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $DayOverridesTable dayOverrides = $DayOverridesTable(this);
   late final $LeaveRecordsTable leaveRecords = $LeaveRecordsTable(this);
   late final $NotesTable notes = $NotesTable(this);
+  late final $FoldersTable folders = $FoldersTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3155,6 +3503,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     dayOverrides,
     leaveRecords,
     notes,
+    folders,
   ];
 }
 
@@ -4468,6 +4817,7 @@ typedef $$NotesTableCreateCompanionBuilder =
       Value<String> tags,
       Value<String> checklist,
       Value<bool> pinned,
+      Value<int?> folderId,
       required DateTime updatedAt,
     });
 typedef $$NotesTableUpdateCompanionBuilder =
@@ -4480,6 +4830,7 @@ typedef $$NotesTableUpdateCompanionBuilder =
       Value<String> tags,
       Value<String> checklist,
       Value<bool> pinned,
+      Value<int?> folderId,
       Value<DateTime> updatedAt,
     });
 
@@ -4528,6 +4879,11 @@ class $$NotesTableFilterComposer extends Composer<_$AppDatabase, $NotesTable> {
 
   ColumnFilters<bool> get pinned => $composableBuilder(
     column: $table.pinned,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get folderId => $composableBuilder(
+    column: $table.folderId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4586,6 +4942,11 @@ class $$NotesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get folderId => $composableBuilder(
+    column: $table.folderId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
@@ -4624,6 +4985,9 @@ class $$NotesTableAnnotationComposer
 
   GeneratedColumn<bool> get pinned =>
       $composableBuilder(column: $table.pinned, builder: (column) => column);
+
+  GeneratedColumn<int> get folderId =>
+      $composableBuilder(column: $table.folderId, builder: (column) => column);
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
@@ -4665,6 +5029,7 @@ class $$NotesTableTableManager
                 Value<String> tags = const Value.absent(),
                 Value<String> checklist = const Value.absent(),
                 Value<bool> pinned = const Value.absent(),
+                Value<int?> folderId = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => NotesCompanion(
                 id: id,
@@ -4675,6 +5040,7 @@ class $$NotesTableTableManager
                 tags: tags,
                 checklist: checklist,
                 pinned: pinned,
+                folderId: folderId,
                 updatedAt: updatedAt,
               ),
           createCompanionCallback:
@@ -4687,6 +5053,7 @@ class $$NotesTableTableManager
                 Value<String> tags = const Value.absent(),
                 Value<String> checklist = const Value.absent(),
                 Value<bool> pinned = const Value.absent(),
+                Value<int?> folderId = const Value.absent(),
                 required DateTime updatedAt,
               }) => NotesCompanion.insert(
                 id: id,
@@ -4697,6 +5064,7 @@ class $$NotesTableTableManager
                 tags: tags,
                 checklist: checklist,
                 pinned: pinned,
+                folderId: folderId,
                 updatedAt: updatedAt,
               ),
           withReferenceMapper: (p0) => p0
@@ -4721,6 +5089,175 @@ typedef $$NotesTableProcessedTableManager =
       Note,
       PrefetchHooks Function()
     >;
+typedef $$FoldersTableCreateCompanionBuilder =
+    FoldersCompanion Function({
+      Value<int> id,
+      required String name,
+      Value<int?> parentId,
+      required DateTime createdAt,
+    });
+typedef $$FoldersTableUpdateCompanionBuilder =
+    FoldersCompanion Function({
+      Value<int> id,
+      Value<String> name,
+      Value<int?> parentId,
+      Value<DateTime> createdAt,
+    });
+
+class $$FoldersTableFilterComposer
+    extends Composer<_$AppDatabase, $FoldersTable> {
+  $$FoldersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get parentId => $composableBuilder(
+    column: $table.parentId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$FoldersTableOrderingComposer
+    extends Composer<_$AppDatabase, $FoldersTable> {
+  $$FoldersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get parentId => $composableBuilder(
+    column: $table.parentId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$FoldersTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FoldersTable> {
+  $$FoldersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get parentId =>
+      $composableBuilder(column: $table.parentId, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$FoldersTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FoldersTable,
+          Folder,
+          $$FoldersTableFilterComposer,
+          $$FoldersTableOrderingComposer,
+          $$FoldersTableAnnotationComposer,
+          $$FoldersTableCreateCompanionBuilder,
+          $$FoldersTableUpdateCompanionBuilder,
+          (Folder, BaseReferences<_$AppDatabase, $FoldersTable, Folder>),
+          Folder,
+          PrefetchHooks Function()
+        > {
+  $$FoldersTableTableManager(_$AppDatabase db, $FoldersTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FoldersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FoldersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FoldersTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int?> parentId = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => FoldersCompanion(
+                id: id,
+                name: name,
+                parentId: parentId,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String name,
+                Value<int?> parentId = const Value.absent(),
+                required DateTime createdAt,
+              }) => FoldersCompanion.insert(
+                id: id,
+                name: name,
+                parentId: parentId,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$FoldersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FoldersTable,
+      Folder,
+      $$FoldersTableFilterComposer,
+      $$FoldersTableOrderingComposer,
+      $$FoldersTableAnnotationComposer,
+      $$FoldersTableCreateCompanionBuilder,
+      $$FoldersTableUpdateCompanionBuilder,
+      (Folder, BaseReferences<_$AppDatabase, $FoldersTable, Folder>),
+      Folder,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4737,4 +5274,6 @@ class $AppDatabaseManager {
       $$LeaveRecordsTableTableManager(_db, _db.leaveRecords);
   $$NotesTableTableManager get notes =>
       $$NotesTableTableManager(_db, _db.notes);
+  $$FoldersTableTableManager get folders =>
+      $$FoldersTableTableManager(_db, _db.folders);
 }

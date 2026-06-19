@@ -4,11 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/enums.dart';
 import '../domain/models.dart';
 import '../state/providers.dart';
+import 'widgets/folder_picker.dart';
 
-/// Full-screen editor for a daily/meeting note with action-item checklist.
+/// Full-screen editor for a daily/meeting note with a folder, action-item
+/// checklist, and a seamless title + body writing surface.
 class NoteEditorScreen extends ConsumerStatefulWidget {
   final NoteModel? existing;
-  const NoteEditorScreen({super.key, this.existing});
+  final int? initialFolderId;
+  const NoteEditorScreen({super.key, this.existing, this.initialFolderId});
 
   @override
   ConsumerState<NoteEditorScreen> createState() => _NoteEditorScreenState();
@@ -17,6 +20,7 @@ class NoteEditorScreen extends ConsumerStatefulWidget {
 class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   late NoteKind _kind;
   late DateTime _date;
+  late int? _folderId;
   late final TextEditingController _title;
   late final TextEditingController _body;
   late final TextEditingController _tags;
@@ -32,6 +36,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     final e = widget.existing;
     _kind = e?.kind ?? NoteKind.daily;
     _date = e?.date ?? DateTime.now();
+    _folderId = e?.folderId ?? widget.initialFolderId;
     _title = TextEditingController(text: e?.title ?? '');
     _body = TextEditingController(text: e?.body ?? '');
     _tags = TextEditingController(text: e?.tags.join(', ') ?? '');
@@ -55,8 +60,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
 
   Future<void> _save() async {
     if (_isEmpty) {
-      // Nothing to save; if editing an existing empty note, delete it.
-      if (_isEdit) await ref.read(repositoryProvider).deleteNote(widget.existing!.id!);
+      if (_isEdit) {
+        await ref.read(repositoryProvider).deleteNote(widget.existing!.id!);
+      }
       if (mounted) Navigator.pop(context);
       return;
     }
@@ -74,6 +80,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
           tags: tags,
           checklist: _checklist,
           pinned: _pinned,
+          folderId: _folderId,
           updatedAt: DateTime.now(),
         ));
     if (mounted) Navigator.pop(context);
@@ -94,6 +101,11 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
     if (d != null) setState(() => _date = d);
   }
 
+  Future<void> _pickFolder() async {
+    final result = await showFolderPicker(context, ref, selected: _folderId);
+    if (result != null) setState(() => _folderId = result.id);
+  }
+
   void _addItem() {
     final t = _newItem.text.trim();
     if (t.isEmpty) return;
@@ -106,6 +118,14 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final folders = ref.watch(foldersProvider).value ?? const [];
+    final folderName = _folderId == null
+        ? 'Unfiled'
+        : folders
+            .firstWhere((f) => f.id == _folderId,
+                orElse: () => const FolderModel(name: 'Unfiled'))
+            .name;
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -113,11 +133,16 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
       },
       child: Scaffold(
         appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: _save,
+          ),
           title: Text(_isEdit ? 'Edit note' : 'New note'),
           actions: [
             IconButton(
-              tooltip: 'Pin',
-              icon: Icon(_pinned ? Icons.push_pin : Icons.push_pin_outlined),
+              tooltip: _pinned ? 'Unpin' : 'Pin',
+              icon: Icon(_pinned ? Icons.push_pin : Icons.push_pin_outlined,
+                  color: _pinned ? scheme.primary : null),
               onPressed: () => setState(() => _pinned = !_pinned),
             ),
             if (_isEdit)
@@ -126,66 +151,63 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
                 icon: const Icon(Icons.delete_outline),
                 onPressed: _delete,
               ),
-            IconButton(
-                tooltip: 'Save',
-                icon: const Icon(Icons.check),
-                onPressed: _save),
+            const SizedBox(width: 4),
           ],
         ),
         body: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
           children: [
-            Row(
+            // Meta row: kind · date · folder, as quiet chips.
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                Expanded(
-                  child: SegmentedButton<NoteKind>(
-                    segments: const [
-                      ButtonSegment(
-                          value: NoteKind.daily,
-                          label: Text('Daily'),
-                          icon: Icon(Icons.today)),
-                      ButtonSegment(
-                          value: NoteKind.meeting,
-                          label: Text('Meeting'),
-                          icon: Icon(Icons.groups)),
-                    ],
-                    selected: {_kind},
-                    onSelectionChanged: (s) => setState(() => _kind = s.first),
-                  ),
+                _MetaChip(
+                  icon: _kind == NoteKind.meeting ? Icons.groups : Icons.today,
+                  label: _kind.label,
+                  onTap: () => setState(() => _kind = _kind == NoteKind.daily
+                      ? NoteKind.meeting
+                      : NoteKind.daily),
+                ),
+                _MetaChip(
+                  icon: Icons.event_outlined,
+                  label: _pretty(_date),
+                  onTap: _pickDate,
+                ),
+                _MetaChip(
+                  icon: Icons.folder_outlined,
+                  label: folderName,
+                  onTap: _pickFolder,
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            ActionChip(
-              avatar: const Icon(Icons.event, size: 18),
-              label: Text(_pretty(_date)),
-              onPressed: _pickDate,
-            ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 20),
+            // Seamless writing surface — title flows straight into the body.
             TextField(
               controller: _title,
               textCapitalization: TextCapitalization.sentences,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleLarge
-                  ?.copyWith(fontWeight: FontWeight.w700),
-              decoration: const InputDecoration(
-                  hintText: 'Title', border: InputBorder.none),
+              maxLines: null,
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    height: 1.2,
+                  ),
+              decoration: _bare(context, 'Title'),
             ),
+            const SizedBox(height: 8),
             TextField(
               controller: _body,
               maxLines: null,
-              minLines: 5,
+              minLines: 6,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                  hintText: 'Write your note…', border: InputBorder.none),
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyLarge
+                  ?.copyWith(height: 1.5, color: scheme.onSurfaceVariant),
+              decoration: _bare(context, 'Start writing…'),
             ),
-            const Divider(height: 28),
-            Text('Action items',
-                style: Theme.of(context)
-                    .textTheme
-                    .labelLarge
-                    ?.copyWith(color: scheme.onSurfaceVariant)),
+            const SizedBox(height: 24),
+            _SectionLabel('Action items', scheme: scheme),
+            const SizedBox(height: 4),
             for (var i = 0; i < _checklist.length; i++)
               _ChecklistRow(
                 item: _checklist[i],
@@ -196,28 +218,96 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen> {
               ),
             Row(
               children: [
-                const Icon(Icons.add, size: 20),
-                const SizedBox(width: 8),
+                Icon(Icons.add_circle_outline,
+                    size: 20, color: scheme.onSurfaceVariant),
+                const SizedBox(width: 10),
                 Expanded(
                   child: TextField(
                     controller: _newItem,
-                    decoration: const InputDecoration(
-                        hintText: 'Add an action item',
-                        border: InputBorder.none),
+                    decoration: _bare(context, 'Add an action item'),
                     onSubmitted: (_) => _addItem(),
                   ),
                 ),
               ],
             ),
-            const Divider(height: 28),
+            const SizedBox(height: 24),
+            _SectionLabel('Tags', scheme: scheme),
+            const SizedBox(height: 8),
             TextField(
               controller: _tags,
               decoration: const InputDecoration(
-                labelText: 'Tags (comma-separated)',
-                border: OutlineInputBorder(),
+                hintText: 'comma, separated, tags',
+                prefixIcon: Icon(Icons.tag, size: 18),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Borderless, unfilled field decoration for a seamless writing surface.
+InputDecoration _bare(BuildContext context, String hint) => InputDecoration(
+      hintText: hint,
+      filled: false,
+      isCollapsed: true,
+      border: InputBorder.none,
+      enabledBorder: InputBorder.none,
+      focusedBorder: InputBorder.none,
+      errorBorder: InputBorder.none,
+      hintStyle: TextStyle(
+          color: Theme.of(context)
+              .colorScheme
+              .onSurfaceVariant
+              .withValues(alpha: 0.6)),
+    );
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  final ColorScheme scheme;
+  const _SectionLabel(this.text, {required this.scheme});
+
+  @override
+  Widget build(BuildContext context) => Text(
+        text.toUpperCase(),
+        style: TextStyle(
+          color: scheme.onSurfaceVariant,
+          fontWeight: FontWeight.w700,
+          fontSize: 11,
+          letterSpacing: 1.0,
+        ),
+      );
+}
+
+class _MetaChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _MetaChip(
+      {required this.icon, required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: scheme.surfaceContainerHigh,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 6),
+              Text(label,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 13)),
+            ],
+          ),
         ),
       ),
     );
@@ -236,7 +326,16 @@ class _ChecklistRow extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Row(
       children: [
-        Checkbox(value: item.done, onChanged: (_) => onToggle()),
+        SizedBox(
+          width: 28,
+          child: Checkbox(
+            value: item.done,
+            onChanged: (_) => onToggle(),
+            visualDensity: VisualDensity.compact,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ),
+        const SizedBox(width: 8),
         Expanded(
           child: Text(
             item.text,

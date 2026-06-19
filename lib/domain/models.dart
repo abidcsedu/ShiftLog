@@ -60,6 +60,14 @@ class ChecklistItem {
       ChecklistItem(j['text'] as String? ?? '', done: j['done'] as bool? ?? false);
 }
 
+/// A note folder (subfolders link via [parentId]; null = top level).
+class FolderModel {
+  final int? id;
+  final String name;
+  final int? parentId;
+  const FolderModel({this.id, required this.name, this.parentId});
+}
+
 /// A work note — daily journal or meeting note — with optional action items.
 class NoteModel {
   final int? id;
@@ -70,6 +78,7 @@ class NoteModel {
   final List<String> tags;
   final List<ChecklistItem> checklist;
   final bool pinned;
+  final int? folderId; // null = unfiled
   final DateTime updatedAt;
 
   const NoteModel({
@@ -81,6 +90,7 @@ class NoteModel {
     this.tags = const [],
     this.checklist = const [],
     this.pinned = false,
+    this.folderId,
     required this.updatedAt,
   });
 }

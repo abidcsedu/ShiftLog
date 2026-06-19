@@ -81,6 +81,9 @@ final leaveRecordsProvider = StreamProvider<List<LeaveRecordModel>>(
 final notesProvider = StreamProvider<List<NoteModel>>(
     (ref) => ref.watch(repositoryProvider).watchNotes());
 
+final foldersProvider = StreamProvider<List<FolderModel>>(
+    (ref) => ref.watch(repositoryProvider).watchFolders());
+
 // Day → leave duration map (full/half), expanded from leave records. Used for
 // expected-day reduction and calendar markers.
 final leaveDaysMapProvider = Provider<Map<String, LeaveType>>((ref) {

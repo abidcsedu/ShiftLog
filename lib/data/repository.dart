@@ -252,6 +252,7 @@ class Repository {
             .map((e) => ChecklistItem.fromJson((e as Map).cast()))
             .toList(),
         pinned: r.pinned,
+        folderId: r.folderId,
         updatedAt: r.updatedAt,
       );
 
@@ -268,6 +269,7 @@ class Repository {
       tags: Value(n.tags.join(',')),
       checklist: Value(jsonEncode(n.checklist.map((e) => e.toJson()).toList())),
       pinned: Value(n.pinned),
+      folderId: Value(n.folderId),
       updatedAt: Value(DateTime.now()),
     );
     if (n.id == null) {
@@ -280,6 +282,39 @@ class Repository {
 
   Future<void> deleteNote(int id) async =>
       (db.delete(db.notes)..where((t) => t.id.equals(id))).go();
+
+  // --- note folders (with subfolders via parentId) ---
+  FolderModel _toFolder(Folder r) =>
+      FolderModel(id: r.id, name: r.name, parentId: r.parentId);
+
+  Stream<List<FolderModel>> watchFolders() =>
+      db.watchFolders().map((rows) => rows.map(_toFolder).toList());
+
+  Future<int> createFolder(String name, {int? parentId}) =>
+      db.into(db.folders).insert(FoldersCompanion.insert(
+            name: name,
+            parentId: Value(parentId),
+            createdAt: DateTime.now(),
+          ));
+
+  Future<void> renameFolder(int id, String name) async =>
+      (db.update(db.folders)..where((t) => t.id.equals(id)))
+          .write(FoldersCompanion(name: Value(name)));
+
+  /// Deletes a folder, moving its notes and subfolders up to its parent so
+  /// nothing is lost.
+  Future<void> deleteFolder(int id) async {
+    await db.transaction(() async {
+      final row = await (db.select(db.folders)..where((t) => t.id.equals(id)))
+          .getSingleOrNull();
+      final parent = row?.parentId;
+      await (db.update(db.notes)..where((t) => t.folderId.equals(id)))
+          .write(NotesCompanion(folderId: Value(parent)));
+      await (db.update(db.folders)..where((t) => t.parentId.equals(id)))
+          .write(FoldersCompanion(parentId: Value(parent)));
+      await (db.delete(db.folders)..where((t) => t.id.equals(id))).go();
+    });
+  }
 
   // --- full backup (JSON) — round-trips every field for phone transfer ---
   /// Serializes settings + all sessions + leaves to a JSON backup string.
@@ -335,6 +370,10 @@ class Repository {
         for (final r in await db.overridesOnce())
           {'dayKey': r.dayKey, 'type': r.type},
       ],
+      'folders': [
+        for (final r in await db.foldersOnce())
+          {'id': r.id, 'name': r.name, 'parentId': r.parentId},
+      ],
       'notes': [
         for (final r in await db.notesOnce())
           {
@@ -345,6 +384,7 @@ class Repository {
             'tags': r.tags,
             'checklist': r.checklist,
             'pinned': r.pinned,
+            'folderId': r.folderId,
             'updatedAt': r.updatedAt.toIso8601String(),
           },
       ],
@@ -365,6 +405,7 @@ class Repository {
       await db.delete(db.leaveRecords).go();
       await db.delete(db.dayOverrides).go();
       await db.delete(db.notes).go();
+      await db.delete(db.folders).go();
 
       final s = map['settings'] as Map<String, dynamic>?;
       if (s != null) {
@@ -426,8 +467,34 @@ class Repository {
               ),
             );
       }
+      // Folders first, remapping old ids → new ids so the tree + note links
+      // survive the re-insert.
+      final folderIdMap = <int, int>{};
+      final rawFolders = ((map['folders'] as List?) ?? const [])
+          .cast<Map<String, dynamic>>();
+      for (final j in rawFolders) {
+        final newId = await db.into(db.folders).insert(
+              FoldersCompanion.insert(
+                name: j['name'] as String? ?? 'Folder',
+                createdAt: DateTime.now(),
+              ),
+            );
+        if (j['id'] != null) folderIdMap[j['id'] as int] = newId;
+      }
+      for (final j in rawFolders) {
+        final oldId = j['id'] as int?;
+        final oldParent = j['parentId'] as int?;
+        if (oldId == null || oldParent == null) continue;
+        final newId = folderIdMap[oldId];
+        final newParent = folderIdMap[oldParent];
+        if (newId != null && newParent != null) {
+          await (db.update(db.folders)..where((t) => t.id.equals(newId)))
+              .write(FoldersCompanion(parentId: Value(newParent)));
+        }
+      }
       for (final j in ((map['notes'] as List?) ?? const [])
           .cast<Map<String, dynamic>>()) {
+        final oldFolder = j['folderId'] as int?;
         await db.into(db.notes).insert(
               NotesCompanion(
                 kind: Value(j['kind'] as String? ?? 'daily'),
@@ -437,6 +504,8 @@ class Repository {
                 tags: Value(j['tags'] as String? ?? ''),
                 checklist: Value(j['checklist'] as String? ?? '[]'),
                 pinned: Value(j['pinned'] as bool? ?? false),
+                folderId: Value(
+                    oldFolder == null ? null : folderIdMap[oldFolder]),
                 updatedAt: Value(DateTime.parse(j['updatedAt'] as String)),
               ),
             );
