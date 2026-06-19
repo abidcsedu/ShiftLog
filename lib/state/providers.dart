@@ -78,6 +78,9 @@ final todaySessionsProvider = StreamProvider<List<WorkSession>>(
 final leaveRecordsProvider = StreamProvider<List<LeaveRecordModel>>(
     (ref) => ref.watch(repositoryProvider).watchLeaveRecords());
 
+final notesProvider = StreamProvider<List<NoteModel>>(
+    (ref) => ref.watch(repositoryProvider).watchNotes());
+
 // Day → leave duration map (full/half), expanded from leave records. Used for
 // expected-day reduction and calendar markers.
 final leaveDaysMapProvider = Provider<Map<String, LeaveType>>((ref) {

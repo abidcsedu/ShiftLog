@@ -9,6 +9,7 @@ class MainShell extends StatelessWidget {
 
   static const _destinations = [
     _Dest(Icons.home_outlined, Icons.home, 'Home'),
+    _Dest(Icons.sticky_note_2_outlined, Icons.sticky_note_2, 'Notes'),
     _Dest(Icons.insights_outlined, Icons.insights, 'Insights'),
     _Dest(Icons.calendar_month_outlined, Icons.calendar_month, 'History'),
     _Dest(Icons.settings_outlined, Icons.settings, 'Settings'),

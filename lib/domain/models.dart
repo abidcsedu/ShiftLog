@@ -46,3 +46,41 @@ class LeaveRecordModel {
 
   int get year => startDate.year;
 }
+
+class ChecklistItem {
+  final String text;
+  final bool done;
+  const ChecklistItem(this.text, {this.done = false});
+
+  ChecklistItem copyWith({String? text, bool? done}) =>
+      ChecklistItem(text ?? this.text, done: done ?? this.done);
+
+  Map<String, dynamic> toJson() => {'text': text, 'done': done};
+  static ChecklistItem fromJson(Map<String, dynamic> j) =>
+      ChecklistItem(j['text'] as String? ?? '', done: j['done'] as bool? ?? false);
+}
+
+/// A work note — daily journal or meeting note — with optional action items.
+class NoteModel {
+  final int? id;
+  final NoteKind kind;
+  final DateTime date;
+  final String title;
+  final String body;
+  final List<String> tags;
+  final List<ChecklistItem> checklist;
+  final bool pinned;
+  final DateTime updatedAt;
+
+  const NoteModel({
+    this.id,
+    required this.kind,
+    required this.date,
+    required this.title,
+    required this.body,
+    this.tags = const [],
+    this.checklist = const [],
+    this.pinned = false,
+    required this.updatedAt,
+  });
+}

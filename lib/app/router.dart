@@ -7,6 +7,7 @@ import '../ui/dashboard_screen.dart';
 import '../ui/history_screen.dart';
 import '../ui/main_shell.dart';
 import '../ui/monthly_screen.dart';
+import '../ui/notes_screen.dart';
 import '../ui/settings_screen.dart';
 import '../ui/setup_screen.dart';
 
@@ -50,6 +51,9 @@ final routerProvider = Provider<GoRouter>((ref) {
         branches: [
           StatefulShellBranch(routes: [
             GoRoute(path: '/home', builder: (_, _) => const DashboardScreen()),
+          ]),
+          StatefulShellBranch(routes: [
+            GoRoute(path: '/notes', builder: (_, _) => const NotesScreen()),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(

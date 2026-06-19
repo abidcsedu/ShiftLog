@@ -8,6 +8,9 @@ enum LeaveType { half, full }
 /// Category of leave, each with its own yearly entitlement.
 enum LeaveCategory { casual, sick, maternity, parental }
 
+/// A work note is either a daily journal entry or a meeting note.
+enum NoteKind { daily, meeting }
+
 extension WorkModeX on WorkMode {
   String get db => name; // 'office' | 'wfh' | 'outside'
   String get label => switch (this) {
@@ -32,6 +35,13 @@ extension LeaveTypeX on LeaveType {
   double get deduction => this == LeaveType.half ? 0.5 : 1.0;
   static LeaveType fromDb(String v) =>
       LeaveType.values.firstWhere((e) => e.name == v, orElse: () => LeaveType.full);
+}
+
+extension NoteKindX on NoteKind {
+  String get db => name;
+  String get label => this == NoteKind.meeting ? 'Meeting' : 'Daily';
+  static NoteKind fromDb(String v) =>
+      NoteKind.values.firstWhere((e) => e.name == v, orElse: () => NoteKind.daily);
 }
 
 extension LeaveCategoryX on LeaveCategory {

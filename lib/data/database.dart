@@ -73,6 +73,20 @@ class LeaveRecords extends Table {
   DateTimeColumn get appliedOn => dateTime()();
 }
 
+// Work-contextual notes: a daily journal entry or a meeting note.
+class Notes extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get kind => text()(); // 'daily' | 'meeting'
+  DateTimeColumn get date => dateTime()();
+  TextColumn get title => text().withDefault(const Constant(''))();
+  TextColumn get body => text().withDefault(const Constant(''))();
+  TextColumn get tags => text().withDefault(const Constant(''))(); // CSV
+  // Action items as a JSON array of {"text":..,"done":bool}.
+  TextColumn get checklist => text().withDefault(const Constant('[]'))();
+  BoolColumn get pinned => boolean().withDefault(const Constant(false))();
+  DateTimeColumn get updatedAt => dateTime()();
+}
+
 // Per-date working-day overrides for swaps/extra holidays.
 // type: 'off' (a normal working day given as holiday) |
 //       'work' (a weekend day designated as a working day).
@@ -84,14 +98,20 @@ class DayOverrides extends Table {
   Set<Column> get primaryKey => {dayKey};
 }
 
-@DriftDatabase(
-    tables: [UserSettings, TimeLogs, LeaveLogs, DayOverrides, LeaveRecords])
+@DriftDatabase(tables: [
+  UserSettings,
+  TimeLogs,
+  LeaveLogs,
+  DayOverrides,
+  LeaveRecords,
+  Notes
+])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
       : super(executor ?? driftDatabase(name: 'shiftlog'));
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -117,6 +137,9 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(userSettings, userSettings.joinDate);
             await m.addColumn(userSettings, userSettings.biometricLock);
             await m.createTable(leaveRecords);
+          }
+          if (from < 6) {
+            await m.createTable(notes);
           }
         },
       );
@@ -164,4 +187,12 @@ class AppDatabase extends _$AppDatabase {
       (select(leaveRecords)..orderBy([(t) => OrderingTerm.desc(t.appliedOn)]))
           .watch();
   Future<List<LeaveRecord>> leaveRecordsOnce() => select(leaveRecords).get();
+
+  Stream<List<Note>> watchNotes() => (select(notes)
+        ..orderBy([
+          (t) => OrderingTerm.desc(t.pinned),
+          (t) => OrderingTerm.desc(t.date),
+        ]))
+      .watch();
+  Future<List<Note>> notesOnce() => select(notes).get();
 }

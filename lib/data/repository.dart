@@ -227,6 +227,49 @@ class Repository {
   Future<void> deleteLeaveRecord(int id) async =>
       (db.delete(db.leaveRecords)..where((t) => t.id.equals(id))).go();
 
+  // --- notes ---
+  NoteModel _toNote(Note r) => NoteModel(
+        id: r.id,
+        kind: NoteKindX.fromDb(r.kind),
+        date: r.date,
+        title: r.title,
+        body: r.body,
+        tags: r.tags.isEmpty
+            ? const []
+            : r.tags.split(',').map((e) => e.trim()).toList(),
+        checklist: (jsonDecode(r.checklist) as List)
+            .map((e) => ChecklistItem.fromJson((e as Map).cast()))
+            .toList(),
+        pinned: r.pinned,
+        updatedAt: r.updatedAt,
+      );
+
+  Stream<List<NoteModel>> watchNotes() =>
+      db.watchNotes().map((rows) => rows.map(_toNote).toList());
+
+  Future<void> saveNote(NoteModel n) async {
+    final companion = NotesCompanion(
+      id: n.id == null ? const Value.absent() : Value(n.id!),
+      kind: Value(n.kind.db),
+      date: Value(n.date),
+      title: Value(n.title),
+      body: Value(n.body),
+      tags: Value(n.tags.join(',')),
+      checklist: Value(jsonEncode(n.checklist.map((e) => e.toJson()).toList())),
+      pinned: Value(n.pinned),
+      updatedAt: Value(DateTime.now()),
+    );
+    if (n.id == null) {
+      await db.into(db.notes).insert(companion);
+    } else {
+      await (db.update(db.notes)..where((t) => t.id.equals(n.id!)))
+          .write(companion);
+    }
+  }
+
+  Future<void> deleteNote(int id) async =>
+      (db.delete(db.notes)..where((t) => t.id.equals(id))).go();
+
   // --- full backup (JSON) — round-trips every field for phone transfer ---
   /// Serializes settings + all sessions + leaves to a JSON backup string.
   Future<String> exportJson() async {
@@ -281,6 +324,19 @@ class Repository {
         for (final r in await db.overridesOnce())
           {'dayKey': r.dayKey, 'type': r.type},
       ],
+      'notes': [
+        for (final r in await db.notesOnce())
+          {
+            'kind': r.kind,
+            'date': r.date.toIso8601String(),
+            'title': r.title,
+            'body': r.body,
+            'tags': r.tags,
+            'checklist': r.checklist,
+            'pinned': r.pinned,
+            'updatedAt': r.updatedAt.toIso8601String(),
+          },
+      ],
     };
     return const JsonEncoder.withIndent('  ').convert(map);
   }
@@ -297,6 +353,7 @@ class Repository {
       await db.delete(db.timeLogs).go();
       await db.delete(db.leaveRecords).go();
       await db.delete(db.dayOverrides).go();
+      await db.delete(db.notes).go();
 
       final s = map['settings'] as Map<String, dynamic>?;
       if (s != null) {
@@ -355,6 +412,21 @@ class Repository {
                 daysConsumed: (j['daysConsumed'] as num).toDouble(),
                 reason: Value(j['reason'] as String?),
                 appliedOn: DateTime.parse(j['appliedOn'] as String),
+              ),
+            );
+      }
+      for (final j in ((map['notes'] as List?) ?? const [])
+          .cast<Map<String, dynamic>>()) {
+        await db.into(db.notes).insert(
+              NotesCompanion(
+                kind: Value(j['kind'] as String? ?? 'daily'),
+                date: Value(DateTime.parse(j['date'] as String)),
+                title: Value(j['title'] as String? ?? ''),
+                body: Value(j['body'] as String? ?? ''),
+                tags: Value(j['tags'] as String? ?? ''),
+                checklist: Value(j['checklist'] as String? ?? '[]'),
+                pinned: Value(j['pinned'] as bool? ?? false),
+                updatedAt: Value(DateTime.parse(j['updatedAt'] as String)),
               ),
             );
       }
