@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../domain/enums.dart';
-import '../domain/work_logic.dart';
 import '../state/providers.dart';
 import 'backup_actions.dart';
 
@@ -16,10 +15,24 @@ class SetupScreen extends ConsumerStatefulWidget {
 
 class _SetupScreenState extends ConsumerState<SetupScreen> {
   Gender _gender = Gender.male;
+  DateTime? _joinDate;
 
   Future<void> _finish() async {
-    await ref.read(repositoryProvider).createSettings(_gender);
+    await ref
+        .read(repositoryProvider)
+        .createSettings(_gender, joinDate: _joinDate);
     if (mounted) context.go('/home');
+  }
+
+  Future<void> _pickJoinDate() async {
+    final d = await showDatePicker(
+      context: context,
+      initialDate: _joinDate ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+      helpText: 'Date you joined',
+    );
+    if (d != null) setState(() => _joinDate = d);
   }
 
   Future<void> _restore() async {
@@ -66,7 +79,7 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                       .titleMedium
                       ?.copyWith(fontWeight: FontWeight.w700)),
               const SizedBox(height: 4),
-              Text('This sets your yearly holiday allocation.',
+              Text('This sets which leave types you can take.',
                   style: TextStyle(color: scheme.onSurfaceVariant)),
               const SizedBox(height: 16),
               for (final g in Gender.values) ...[
@@ -77,6 +90,26 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
                 ),
                 const SizedBox(height: 12),
               ],
+              const SizedBox(height: 8),
+              Material(
+                color: scheme.surfaceContainerHigh,
+                borderRadius: BorderRadius.circular(16),
+                child: ListTile(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                  leading: Icon(Icons.event_available, color: scheme.primary),
+                  title: const Text('Join date (optional)',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: const Text('Used to pro-rate this year’s leave'),
+                  trailing: Text(
+                    _joinDate == null
+                        ? 'Set'
+                        : '${_joinDate!.year}-${_joinDate!.month.toString().padLeft(2, '0')}-${_joinDate!.day.toString().padLeft(2, '0')}',
+                    style: TextStyle(color: scheme.onSurfaceVariant),
+                  ),
+                  onTap: _pickJoinDate,
+                ),
+              ),
               const Spacer(),
               SizedBox(
                 height: 56,
@@ -139,7 +172,10 @@ class _GenderCard extends StatelessWidget {
                   Text(gender.label,
                       style: const TextStyle(
                           fontWeight: FontWeight.w700, fontSize: 16)),
-                  Text('${allocationFor(gender)} holidays / year',
+                  Text(
+                      gender == Gender.female
+                          ? 'Incl. maternity leave'
+                          : 'Standard leave types',
                       style: TextStyle(color: scheme.onSurfaceVariant)),
                 ],
               ),

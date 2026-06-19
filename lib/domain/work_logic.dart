@@ -81,15 +81,96 @@ String? canMarkWfh(
   return null;
 }
 
-// --- C. Holiday balance (gender allocation − leaves taken this calendar year) ---
-int allocationFor(Gender g) => g == Gender.female ? 30 : 25;
+// --- C. Typed leave entitlements (per category, pro-rated by join date) ---
 
-double leaveTakenInYear(List<LeaveEntry> leaves, int year) => leaves
-    .where((l) => yearOf(l.dayKey) == year)
-    .fold(0.0, (sum, l) => sum + l.type.deduction);
+/// Categories this employee may take, given their gender.
+List<LeaveCategory> eligibleLeave(Gender gender) => LeaveCategory.values
+    .where((c) => !(c.femaleOnly && gender != Gender.female))
+    .toList();
 
-double holidayRemaining(List<LeaveEntry> leaves, Gender g, int year) =>
-    allocationFor(g) - leaveTakenInYear(leaves, year);
+/// Pro-rata yearly entitlement (days) for [cat]. Joining on/before the 15th of
+/// a month counts that whole month; after the 15th starts the next month.
+double leaveEntitlement(
+    LeaveCategory cat, Gender gender, DateTime? joinDate, int year) {
+  if (cat.femaleOnly && gender != Gender.female) return 0;
+  final full = cat.fullYearDays;
+  if (joinDate == null || joinDate.year < year) return full;
+  if (joinDate.year > year) return 0;
+  final startMonth = joinDate.day <= 15 ? joinDate.month : joinDate.month + 1;
+  final remainingMonths = 13 - startMonth; // startMonth..Dec inclusive
+  if (remainingMonths <= 0) return 0;
+  return ((full / 12) * remainingMonths).roundToDouble();
+}
+
+double leaveUsed(List<LeaveRecordModel> records, LeaveCategory cat, int year) =>
+    records
+        .where((r) => r.category == cat && r.year == year)
+        .fold(0.0, (sum, r) => sum + r.daysConsumed);
+
+double leaveRemaining(List<LeaveRecordModel> records, LeaveCategory cat,
+        Gender gender, DateTime? joinDate, int year) =>
+    (leaveEntitlement(cat, gender, joinDate, year) -
+            leaveUsed(records, cat, year))
+        .clamp(0.0, double.infinity);
+
+/// Working days between two dates (inclusive), skipping weekend days.
+int workingDaysBetween(DateTime start, DateTime end, Set<int> weekend) {
+  var count = 0;
+  var d = DateTime(start.year, start.month, start.day);
+  final last = DateTime(end.year, end.month, end.day);
+  while (!d.isAfter(last)) {
+    if (!isWeekend(d, weekend)) count++;
+    d = d.add(const Duration(days: 1));
+  }
+  return count == 0 ? 1 : count;
+}
+
+/// WFH days beyond the 2/month or 12/year policy (treated as excess).
+int excessWfhDays(List<WorkSession> logs, int year,
+    {int monthlyLimit = 2, int yearlyLimit = 12}) {
+  final days = wfhDays(logs).where((k) => yearOf(k) == year).toList()..sort();
+  final perMonth = <int, int>{};
+  var yearly = 0;
+  var excess = 0;
+  for (final k in days) {
+    final m = monthOf(k);
+    perMonth[m] = (perMonth[m] ?? 0) + 1;
+    yearly++;
+    if (perMonth[m]! > monthlyLimit || yearly > yearlyLimit) excess++;
+  }
+  return excess;
+}
+
+// --- C2. Daily target, break-even and balance ---
+
+/// Effective per-day target, honouring Ramadan hours when enabled.
+Duration effectiveTarget({
+  required int officeStartMin,
+  required int officeEndMin,
+  required bool ramadanEnabled,
+  required int ramadanStartMin,
+  required int ramadanEndMin,
+}) {
+  final mins = ramadanEnabled
+      ? (ramadanEndMin - ramadanStartMin)
+      : (officeEndMin - officeStartMin);
+  return Duration(minutes: mins.clamp(0, 24 * 60));
+}
+
+/// When you can clock out to exactly hit the target, if currently working and
+/// still short. Returns null if not working or the target is already met.
+DateTime? breakEvenTime(
+    Duration total, Duration target, bool clockedIn, DateTime now) {
+  if (!clockedIn || total >= target) return null;
+  return now.add(target - total);
+}
+
+/// Signed balance for a day/period (worked − target).
+Duration balance(Duration worked, Duration target) => worked - target;
+
+/// True if an open session has been running unusually long (forgot to clock out).
+bool isOverdue(WorkSession s, DateTime now, {int hours = 16}) =>
+    s.isOpen && now.difference(s.clockIn).inHours >= hours;
 
 // --- D. Monthly working-hours target (8h 30m average per worked day) ---
 

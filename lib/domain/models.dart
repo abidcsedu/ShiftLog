@@ -22,16 +22,27 @@ class WorkSession {
   bool get isOpen => clockOut == null;
 }
 
-class LeaveEntry {
+/// A typed leave (casual/sick/…) over a date range.
+class LeaveRecordModel {
   final int? id;
-  final String dayKey; // 'yyyy-MM-dd'
-  final LeaveType type;
-  final String? note;
+  final LeaveCategory category;
+  final DateTime startDate;
+  final DateTime endDate;
+  final LeaveType duration; // half | full
+  final double daysConsumed;
+  final String? reason;
+  final DateTime appliedOn;
 
-  const LeaveEntry({
+  const LeaveRecordModel({
     this.id,
-    required this.dayKey,
-    required this.type,
-    this.note,
+    required this.category,
+    required this.startDate,
+    required this.endDate,
+    required this.duration,
+    required this.daysConsumed,
+    this.reason,
+    required this.appliedOn,
   });
+
+  int get year => startDate.year;
 }

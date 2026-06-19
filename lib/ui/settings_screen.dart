@@ -45,32 +45,75 @@ class SettingsScreen extends ConsumerWidget {
             value: gender.label,
             onTap: () => _editGender(context, repo, gender),
           ),
-
-          _section(context, 'Targets'),
-          _StepperTile(
-            icon: Icons.schedule,
-            title: 'Daily hours target',
-            value: formatDuration(Duration(minutes: settings.dailyTargetMinutes)),
-            onMinus: settings.dailyTargetMinutes > 30
-                ? () => repo.updateSettings(
-                    dailyTargetMinutes: settings.dailyTargetMinutes - 15)
-                : null,
-            onPlus: settings.dailyTargetMinutes < 24 * 60
-                ? () => repo.updateSettings(
-                    dailyTargetMinutes: settings.dailyTargetMinutes + 15)
-                : null,
+          _Tile(
+            icon: Icons.event_available,
+            title: 'Join date',
+            value: settings.joinDate == null
+                ? 'Not set'
+                : _ymd(settings.joinDate!),
+            onTap: () => _editJoinDate(context, repo, settings.joinDate),
           ),
-          _StepperTile(
-            icon: Icons.beach_access,
-            title: 'Yearly holidays',
-            value: '${settings.yearlyHolidayAllocation}',
-            onMinus: settings.yearlyHolidayAllocation > 0
-                ? () => repo.updateSettings(
-                    yearlyHolidayAllocation:
-                        settings.yearlyHolidayAllocation - 1)
-                : null,
-            onPlus: () => repo.updateSettings(
-                yearlyHolidayAllocation: settings.yearlyHolidayAllocation + 1),
+
+          _section(context, 'Office hours'),
+          _Tile(
+            icon: Icons.login,
+            title: 'Start time',
+            value: _hm(settings.officeStartMin),
+            onTap: () => _pickMinutes(context, settings.officeStartMin,
+                (m) => repo.updateSettings(officeStartMin: m)),
+          ),
+          _Tile(
+            icon: Icons.logout,
+            title: 'End time',
+            value: _hm(settings.officeEndMin),
+            onTap: () => _pickMinutes(context, settings.officeEndMin,
+                (m) => repo.updateSettings(officeEndMin: m)),
+          ),
+          _InfoTile(
+            icon: Icons.timelapse,
+            title: 'Daily target',
+            value: formatDuration(Duration(
+                minutes: (settings.officeEndMin - settings.officeStartMin)
+                    .clamp(0, 24 * 60))),
+          ),
+
+          _section(context, 'Ramadan schedule'),
+          Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            color: scheme.surfaceContainerHigh,
+            child: SwitchListTile(
+              secondary: Icon(Icons.nightlight_round, color: scheme.primary),
+              title: const Text('Ramadan mode',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: const Text('Use shorter hours while enabled'),
+              value: settings.ramadanEnabled,
+              onChanged: (v) => repo.updateSettings(ramadanEnabled: v),
+            ),
+          ),
+          if (settings.ramadanEnabled) ...[
+            _Tile(
+              icon: Icons.login,
+              title: 'Ramadan start',
+              value: _hm(settings.ramadanStartMin),
+              onTap: () => _pickMinutes(context, settings.ramadanStartMin,
+                  (m) => repo.updateSettings(ramadanStartMin: m)),
+            ),
+            _Tile(
+              icon: Icons.logout,
+              title: 'Ramadan end',
+              value: _hm(settings.ramadanEndMin),
+              onTap: () => _pickMinutes(context, settings.ramadanEndMin,
+                  (m) => repo.updateSettings(ramadanEndMin: m)),
+            ),
+          ],
+
+          _section(context, 'Work week & limits'),
+          _Tile(
+            icon: Icons.weekend,
+            title: 'Weekend days',
+            value: _weekendLabel(parseWeekend(settings.weekendDays)),
+            onTap: () =>
+                _editWeekend(context, repo, parseWeekend(settings.weekendDays)),
           ),
           _StepperTile(
             icon: Icons.home_work,
@@ -95,13 +138,18 @@ class SettingsScreen extends ConsumerWidget {
                 yearlyWfhLimit: settings.yearlyWfhLimit + 1),
           ),
 
-          _section(context, 'Work week'),
-          _Tile(
-            icon: Icons.weekend,
-            title: 'Weekend days',
-            value: _weekendLabel(parseWeekend(settings.weekendDays)),
-            onTap: () =>
-                _editWeekend(context, repo, parseWeekend(settings.weekendDays)),
+          _section(context, 'Security'),
+          Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            color: scheme.surfaceContainerHigh,
+            child: SwitchListTile(
+              secondary: Icon(Icons.fingerprint, color: scheme.primary),
+              title: const Text('App lock',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: const Text('Require device unlock to open ShiftLog'),
+              value: settings.biometricLock,
+              onChanged: (v) => repo.updateSettings(biometricLock: v),
+            ),
           ),
 
           _section(context, 'Appearance'),
@@ -208,17 +256,33 @@ class SettingsScreen extends ConsumerWidget {
               leading: Icon(g == current
                   ? Icons.radio_button_checked
                   : Icons.radio_button_off),
-              title: Text('${g.label} • ${allocationFor(g)} holidays/yr'),
+              title: Text(g.label),
               onTap: () => Navigator.pop(dialogContext, g),
             ),
         ],
       ),
     );
-    if (g != null) {
-      // Switching gender resets the holiday allocation to its default.
-      await repo.updateSettings(
-          gender: g, yearlyHolidayAllocation: allocationFor(g));
-    }
+    if (g != null) await repo.updateSettings(gender: g);
+  }
+
+  Future<void> _editJoinDate(BuildContext context, repo, DateTime? current) async {
+    final d = await showDatePicker(
+      context: context,
+      initialDate: current ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+      helpText: 'Date you joined',
+    );
+    if (d != null) await repo.updateSettings(joinDate: d);
+  }
+
+  Future<void> _pickMinutes(
+      BuildContext context, int current, void Function(int) onSet) async {
+    final t = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: current ~/ 60, minute: current % 60),
+    );
+    if (t != null) onSet(t.hour * 60 + t.minute);
   }
 
   Future<void> _editWeekend(
@@ -303,6 +367,41 @@ String _weekendLabel(Set<int> weekend) {
   return ordered.isEmpty
       ? 'None'
       : ordered.map((w) => names[w - 1]).join(', ');
+}
+
+String _hm(int minutes) {
+  final h = minutes ~/ 60, m = minutes % 60;
+  final period = h >= 12 ? 'PM' : 'AM';
+  final hour12 = h % 12 == 0 ? 12 : h % 12;
+  return '$hour12:${m.toString().padLeft(2, '0')} $period';
+}
+
+String _ymd(DateTime d) =>
+    '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+
+/// A non-interactive info row (e.g. computed values).
+class _InfoTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String value;
+  const _InfoTile(
+      {required this.icon, required this.title, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      color: scheme.surfaceContainerHigh,
+      child: ListTile(
+        leading: Icon(icon, color: scheme.primary),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+        trailing: Text(value,
+            style:
+                TextStyle(color: scheme.primary, fontWeight: FontWeight.w800)),
+      ),
+    );
+  }
 }
 
 class _Tile extends StatelessWidget {

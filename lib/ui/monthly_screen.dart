@@ -48,7 +48,7 @@ class _MonthlyScreenState extends ConsumerState<MonthlyScreen> {
       requiredAvg: target,
       weekend: ref.watch(weekendProvider),
       overrides: ref.watch(dayOverridesProvider).value ?? const {},
-      leaves: ref.watch(leavesByDayProvider),
+      leaves: ref.watch(leaveDaysMapProvider),
     );
 
     final ok = stats.meetsTarget;

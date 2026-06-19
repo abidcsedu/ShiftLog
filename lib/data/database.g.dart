@@ -122,6 +122,95 @@ class $UserSettingsTable extends UserSettings
     requiredDuringInsert: false,
     defaultValue: const Constant('5,6'),
   );
+  static const VerificationMeta _officeStartMinMeta = const VerificationMeta(
+    'officeStartMin',
+  );
+  @override
+  late final GeneratedColumn<int> officeStartMin = GeneratedColumn<int>(
+    'office_start_min',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(570),
+  );
+  static const VerificationMeta _officeEndMinMeta = const VerificationMeta(
+    'officeEndMin',
+  );
+  @override
+  late final GeneratedColumn<int> officeEndMin = GeneratedColumn<int>(
+    'office_end_min',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1080),
+  );
+  static const VerificationMeta _ramadanEnabledMeta = const VerificationMeta(
+    'ramadanEnabled',
+  );
+  @override
+  late final GeneratedColumn<bool> ramadanEnabled = GeneratedColumn<bool>(
+    'ramadan_enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("ramadan_enabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _ramadanStartMinMeta = const VerificationMeta(
+    'ramadanStartMin',
+  );
+  @override
+  late final GeneratedColumn<int> ramadanStartMin = GeneratedColumn<int>(
+    'ramadan_start_min',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(570),
+  );
+  static const VerificationMeta _ramadanEndMinMeta = const VerificationMeta(
+    'ramadanEndMin',
+  );
+  @override
+  late final GeneratedColumn<int> ramadanEndMin = GeneratedColumn<int>(
+    'ramadan_end_min',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(930),
+  );
+  static const VerificationMeta _joinDateMeta = const VerificationMeta(
+    'joinDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> joinDate = GeneratedColumn<DateTime>(
+    'join_date',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _biometricLockMeta = const VerificationMeta(
+    'biometricLock',
+  );
+  @override
+  late final GeneratedColumn<bool> biometricLock = GeneratedColumn<bool>(
+    'biometric_lock',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("biometric_lock" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -134,6 +223,13 @@ class $UserSettingsTable extends UserSettings
     displayName,
     dailyTargetMinutes,
     weekendDays,
+    officeStartMin,
+    officeEndMin,
+    ramadanEnabled,
+    ramadanStartMin,
+    ramadanEndMin,
+    joinDate,
+    biometricLock,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -228,6 +324,66 @@ class $UserSettingsTable extends UserSettings
         ),
       );
     }
+    if (data.containsKey('office_start_min')) {
+      context.handle(
+        _officeStartMinMeta,
+        officeStartMin.isAcceptableOrUnknown(
+          data['office_start_min']!,
+          _officeStartMinMeta,
+        ),
+      );
+    }
+    if (data.containsKey('office_end_min')) {
+      context.handle(
+        _officeEndMinMeta,
+        officeEndMin.isAcceptableOrUnknown(
+          data['office_end_min']!,
+          _officeEndMinMeta,
+        ),
+      );
+    }
+    if (data.containsKey('ramadan_enabled')) {
+      context.handle(
+        _ramadanEnabledMeta,
+        ramadanEnabled.isAcceptableOrUnknown(
+          data['ramadan_enabled']!,
+          _ramadanEnabledMeta,
+        ),
+      );
+    }
+    if (data.containsKey('ramadan_start_min')) {
+      context.handle(
+        _ramadanStartMinMeta,
+        ramadanStartMin.isAcceptableOrUnknown(
+          data['ramadan_start_min']!,
+          _ramadanStartMinMeta,
+        ),
+      );
+    }
+    if (data.containsKey('ramadan_end_min')) {
+      context.handle(
+        _ramadanEndMinMeta,
+        ramadanEndMin.isAcceptableOrUnknown(
+          data['ramadan_end_min']!,
+          _ramadanEndMinMeta,
+        ),
+      );
+    }
+    if (data.containsKey('join_date')) {
+      context.handle(
+        _joinDateMeta,
+        joinDate.isAcceptableOrUnknown(data['join_date']!, _joinDateMeta),
+      );
+    }
+    if (data.containsKey('biometric_lock')) {
+      context.handle(
+        _biometricLockMeta,
+        biometricLock.isAcceptableOrUnknown(
+          data['biometric_lock']!,
+          _biometricLockMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -277,6 +433,34 @@ class $UserSettingsTable extends UserSettings
         DriftSqlType.string,
         data['${effectivePrefix}weekend_days'],
       )!,
+      officeStartMin: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}office_start_min'],
+      )!,
+      officeEndMin: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}office_end_min'],
+      )!,
+      ramadanEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}ramadan_enabled'],
+      )!,
+      ramadanStartMin: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}ramadan_start_min'],
+      )!,
+      ramadanEndMin: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}ramadan_end_min'],
+      )!,
+      joinDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}join_date'],
+      ),
+      biometricLock: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}biometric_lock'],
+      )!,
     );
   }
 
@@ -297,6 +481,13 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
   final String? displayName;
   final int dailyTargetMinutes;
   final String weekendDays;
+  final int officeStartMin;
+  final int officeEndMin;
+  final bool ramadanEnabled;
+  final int ramadanStartMin;
+  final int ramadanEndMin;
+  final DateTime? joinDate;
+  final bool biometricLock;
   const UserSetting({
     required this.id,
     required this.gender,
@@ -308,6 +499,13 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
     this.displayName,
     required this.dailyTargetMinutes,
     required this.weekendDays,
+    required this.officeStartMin,
+    required this.officeEndMin,
+    required this.ramadanEnabled,
+    required this.ramadanStartMin,
+    required this.ramadanEndMin,
+    this.joinDate,
+    required this.biometricLock,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -326,6 +524,15 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
     }
     map['daily_target_minutes'] = Variable<int>(dailyTargetMinutes);
     map['weekend_days'] = Variable<String>(weekendDays);
+    map['office_start_min'] = Variable<int>(officeStartMin);
+    map['office_end_min'] = Variable<int>(officeEndMin);
+    map['ramadan_enabled'] = Variable<bool>(ramadanEnabled);
+    map['ramadan_start_min'] = Variable<int>(ramadanStartMin);
+    map['ramadan_end_min'] = Variable<int>(ramadanEndMin);
+    if (!nullToAbsent || joinDate != null) {
+      map['join_date'] = Variable<DateTime>(joinDate);
+    }
+    map['biometric_lock'] = Variable<bool>(biometricLock);
     return map;
   }
 
@@ -345,6 +552,15 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
           : Value(displayName),
       dailyTargetMinutes: Value(dailyTargetMinutes),
       weekendDays: Value(weekendDays),
+      officeStartMin: Value(officeStartMin),
+      officeEndMin: Value(officeEndMin),
+      ramadanEnabled: Value(ramadanEnabled),
+      ramadanStartMin: Value(ramadanStartMin),
+      ramadanEndMin: Value(ramadanEndMin),
+      joinDate: joinDate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(joinDate),
+      biometricLock: Value(biometricLock),
     );
   }
 
@@ -366,6 +582,13 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
       displayName: serializer.fromJson<String?>(json['displayName']),
       dailyTargetMinutes: serializer.fromJson<int>(json['dailyTargetMinutes']),
       weekendDays: serializer.fromJson<String>(json['weekendDays']),
+      officeStartMin: serializer.fromJson<int>(json['officeStartMin']),
+      officeEndMin: serializer.fromJson<int>(json['officeEndMin']),
+      ramadanEnabled: serializer.fromJson<bool>(json['ramadanEnabled']),
+      ramadanStartMin: serializer.fromJson<int>(json['ramadanStartMin']),
+      ramadanEndMin: serializer.fromJson<int>(json['ramadanEndMin']),
+      joinDate: serializer.fromJson<DateTime?>(json['joinDate']),
+      biometricLock: serializer.fromJson<bool>(json['biometricLock']),
     );
   }
   @override
@@ -384,6 +607,13 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
       'displayName': serializer.toJson<String?>(displayName),
       'dailyTargetMinutes': serializer.toJson<int>(dailyTargetMinutes),
       'weekendDays': serializer.toJson<String>(weekendDays),
+      'officeStartMin': serializer.toJson<int>(officeStartMin),
+      'officeEndMin': serializer.toJson<int>(officeEndMin),
+      'ramadanEnabled': serializer.toJson<bool>(ramadanEnabled),
+      'ramadanStartMin': serializer.toJson<int>(ramadanStartMin),
+      'ramadanEndMin': serializer.toJson<int>(ramadanEndMin),
+      'joinDate': serializer.toJson<DateTime?>(joinDate),
+      'biometricLock': serializer.toJson<bool>(biometricLock),
     };
   }
 
@@ -398,6 +628,13 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
     Value<String?> displayName = const Value.absent(),
     int? dailyTargetMinutes,
     String? weekendDays,
+    int? officeStartMin,
+    int? officeEndMin,
+    bool? ramadanEnabled,
+    int? ramadanStartMin,
+    int? ramadanEndMin,
+    Value<DateTime?> joinDate = const Value.absent(),
+    bool? biometricLock,
   }) => UserSetting(
     id: id ?? this.id,
     gender: gender ?? this.gender,
@@ -410,6 +647,13 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
     displayName: displayName.present ? displayName.value : this.displayName,
     dailyTargetMinutes: dailyTargetMinutes ?? this.dailyTargetMinutes,
     weekendDays: weekendDays ?? this.weekendDays,
+    officeStartMin: officeStartMin ?? this.officeStartMin,
+    officeEndMin: officeEndMin ?? this.officeEndMin,
+    ramadanEnabled: ramadanEnabled ?? this.ramadanEnabled,
+    ramadanStartMin: ramadanStartMin ?? this.ramadanStartMin,
+    ramadanEndMin: ramadanEndMin ?? this.ramadanEndMin,
+    joinDate: joinDate.present ? joinDate.value : this.joinDate,
+    biometricLock: biometricLock ?? this.biometricLock,
   );
   UserSetting copyWithCompanion(UserSettingsCompanion data) {
     return UserSetting(
@@ -435,6 +679,25 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
       weekendDays: data.weekendDays.present
           ? data.weekendDays.value
           : this.weekendDays,
+      officeStartMin: data.officeStartMin.present
+          ? data.officeStartMin.value
+          : this.officeStartMin,
+      officeEndMin: data.officeEndMin.present
+          ? data.officeEndMin.value
+          : this.officeEndMin,
+      ramadanEnabled: data.ramadanEnabled.present
+          ? data.ramadanEnabled.value
+          : this.ramadanEnabled,
+      ramadanStartMin: data.ramadanStartMin.present
+          ? data.ramadanStartMin.value
+          : this.ramadanStartMin,
+      ramadanEndMin: data.ramadanEndMin.present
+          ? data.ramadanEndMin.value
+          : this.ramadanEndMin,
+      joinDate: data.joinDate.present ? data.joinDate.value : this.joinDate,
+      biometricLock: data.biometricLock.present
+          ? data.biometricLock.value
+          : this.biometricLock,
     );
   }
 
@@ -450,7 +713,14 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
           ..write('darkMode: $darkMode, ')
           ..write('displayName: $displayName, ')
           ..write('dailyTargetMinutes: $dailyTargetMinutes, ')
-          ..write('weekendDays: $weekendDays')
+          ..write('weekendDays: $weekendDays, ')
+          ..write('officeStartMin: $officeStartMin, ')
+          ..write('officeEndMin: $officeEndMin, ')
+          ..write('ramadanEnabled: $ramadanEnabled, ')
+          ..write('ramadanStartMin: $ramadanStartMin, ')
+          ..write('ramadanEndMin: $ramadanEndMin, ')
+          ..write('joinDate: $joinDate, ')
+          ..write('biometricLock: $biometricLock')
           ..write(')'))
         .toString();
   }
@@ -467,6 +737,13 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
     displayName,
     dailyTargetMinutes,
     weekendDays,
+    officeStartMin,
+    officeEndMin,
+    ramadanEnabled,
+    ramadanStartMin,
+    ramadanEndMin,
+    joinDate,
+    biometricLock,
   );
   @override
   bool operator ==(Object other) =>
@@ -481,7 +758,14 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
           other.darkMode == this.darkMode &&
           other.displayName == this.displayName &&
           other.dailyTargetMinutes == this.dailyTargetMinutes &&
-          other.weekendDays == this.weekendDays);
+          other.weekendDays == this.weekendDays &&
+          other.officeStartMin == this.officeStartMin &&
+          other.officeEndMin == this.officeEndMin &&
+          other.ramadanEnabled == this.ramadanEnabled &&
+          other.ramadanStartMin == this.ramadanStartMin &&
+          other.ramadanEndMin == this.ramadanEndMin &&
+          other.joinDate == this.joinDate &&
+          other.biometricLock == this.biometricLock);
 }
 
 class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
@@ -495,6 +779,13 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
   final Value<String?> displayName;
   final Value<int> dailyTargetMinutes;
   final Value<String> weekendDays;
+  final Value<int> officeStartMin;
+  final Value<int> officeEndMin;
+  final Value<bool> ramadanEnabled;
+  final Value<int> ramadanStartMin;
+  final Value<int> ramadanEndMin;
+  final Value<DateTime?> joinDate;
+  final Value<bool> biometricLock;
   const UserSettingsCompanion({
     this.id = const Value.absent(),
     this.gender = const Value.absent(),
@@ -506,6 +797,13 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
     this.displayName = const Value.absent(),
     this.dailyTargetMinutes = const Value.absent(),
     this.weekendDays = const Value.absent(),
+    this.officeStartMin = const Value.absent(),
+    this.officeEndMin = const Value.absent(),
+    this.ramadanEnabled = const Value.absent(),
+    this.ramadanStartMin = const Value.absent(),
+    this.ramadanEndMin = const Value.absent(),
+    this.joinDate = const Value.absent(),
+    this.biometricLock = const Value.absent(),
   });
   UserSettingsCompanion.insert({
     this.id = const Value.absent(),
@@ -518,6 +816,13 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
     this.displayName = const Value.absent(),
     this.dailyTargetMinutes = const Value.absent(),
     this.weekendDays = const Value.absent(),
+    this.officeStartMin = const Value.absent(),
+    this.officeEndMin = const Value.absent(),
+    this.ramadanEnabled = const Value.absent(),
+    this.ramadanStartMin = const Value.absent(),
+    this.ramadanEndMin = const Value.absent(),
+    this.joinDate = const Value.absent(),
+    this.biometricLock = const Value.absent(),
   }) : gender = Value(gender),
        yearlyHolidayAllocation = Value(yearlyHolidayAllocation),
        createdAt = Value(createdAt);
@@ -532,6 +837,13 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
     Expression<String>? displayName,
     Expression<int>? dailyTargetMinutes,
     Expression<String>? weekendDays,
+    Expression<int>? officeStartMin,
+    Expression<int>? officeEndMin,
+    Expression<bool>? ramadanEnabled,
+    Expression<int>? ramadanStartMin,
+    Expression<int>? ramadanEndMin,
+    Expression<DateTime>? joinDate,
+    Expression<bool>? biometricLock,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -546,6 +858,13 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
       if (dailyTargetMinutes != null)
         'daily_target_minutes': dailyTargetMinutes,
       if (weekendDays != null) 'weekend_days': weekendDays,
+      if (officeStartMin != null) 'office_start_min': officeStartMin,
+      if (officeEndMin != null) 'office_end_min': officeEndMin,
+      if (ramadanEnabled != null) 'ramadan_enabled': ramadanEnabled,
+      if (ramadanStartMin != null) 'ramadan_start_min': ramadanStartMin,
+      if (ramadanEndMin != null) 'ramadan_end_min': ramadanEndMin,
+      if (joinDate != null) 'join_date': joinDate,
+      if (biometricLock != null) 'biometric_lock': biometricLock,
     });
   }
 
@@ -560,6 +879,13 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
     Value<String?>? displayName,
     Value<int>? dailyTargetMinutes,
     Value<String>? weekendDays,
+    Value<int>? officeStartMin,
+    Value<int>? officeEndMin,
+    Value<bool>? ramadanEnabled,
+    Value<int>? ramadanStartMin,
+    Value<int>? ramadanEndMin,
+    Value<DateTime?>? joinDate,
+    Value<bool>? biometricLock,
   }) {
     return UserSettingsCompanion(
       id: id ?? this.id,
@@ -573,6 +899,13 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
       displayName: displayName ?? this.displayName,
       dailyTargetMinutes: dailyTargetMinutes ?? this.dailyTargetMinutes,
       weekendDays: weekendDays ?? this.weekendDays,
+      officeStartMin: officeStartMin ?? this.officeStartMin,
+      officeEndMin: officeEndMin ?? this.officeEndMin,
+      ramadanEnabled: ramadanEnabled ?? this.ramadanEnabled,
+      ramadanStartMin: ramadanStartMin ?? this.ramadanStartMin,
+      ramadanEndMin: ramadanEndMin ?? this.ramadanEndMin,
+      joinDate: joinDate ?? this.joinDate,
+      biometricLock: biometricLock ?? this.biometricLock,
     );
   }
 
@@ -611,6 +944,27 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
     if (weekendDays.present) {
       map['weekend_days'] = Variable<String>(weekendDays.value);
     }
+    if (officeStartMin.present) {
+      map['office_start_min'] = Variable<int>(officeStartMin.value);
+    }
+    if (officeEndMin.present) {
+      map['office_end_min'] = Variable<int>(officeEndMin.value);
+    }
+    if (ramadanEnabled.present) {
+      map['ramadan_enabled'] = Variable<bool>(ramadanEnabled.value);
+    }
+    if (ramadanStartMin.present) {
+      map['ramadan_start_min'] = Variable<int>(ramadanStartMin.value);
+    }
+    if (ramadanEndMin.present) {
+      map['ramadan_end_min'] = Variable<int>(ramadanEndMin.value);
+    }
+    if (joinDate.present) {
+      map['join_date'] = Variable<DateTime>(joinDate.value);
+    }
+    if (biometricLock.present) {
+      map['biometric_lock'] = Variable<bool>(biometricLock.value);
+    }
     return map;
   }
 
@@ -626,7 +980,14 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
           ..write('darkMode: $darkMode, ')
           ..write('displayName: $displayName, ')
           ..write('dailyTargetMinutes: $dailyTargetMinutes, ')
-          ..write('weekendDays: $weekendDays')
+          ..write('weekendDays: $weekendDays, ')
+          ..write('officeStartMin: $officeStartMin, ')
+          ..write('officeEndMin: $officeEndMin, ')
+          ..write('ramadanEnabled: $ramadanEnabled, ')
+          ..write('ramadanStartMin: $ramadanStartMin, ')
+          ..write('ramadanEndMin: $ramadanEndMin, ')
+          ..write('joinDate: $joinDate, ')
+          ..write('biometricLock: $biometricLock')
           ..write(')'))
         .toString();
   }
@@ -1528,6 +1889,512 @@ class DayOverridesCompanion extends UpdateCompanion<DayOverride> {
   }
 }
 
+class $LeaveRecordsTable extends LeaveRecords
+    with TableInfo<$LeaveRecordsTable, LeaveRecord> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LeaveRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _leaveTypeMeta = const VerificationMeta(
+    'leaveType',
+  );
+  @override
+  late final GeneratedColumn<String> leaveType = GeneratedColumn<String>(
+    'leave_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _startDateMeta = const VerificationMeta(
+    'startDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startDate = GeneratedColumn<DateTime>(
+    'start_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endDateMeta = const VerificationMeta(
+    'endDate',
+  );
+  @override
+  late final GeneratedColumn<DateTime> endDate = GeneratedColumn<DateTime>(
+    'end_date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _durationMeta = const VerificationMeta(
+    'duration',
+  );
+  @override
+  late final GeneratedColumn<String> duration = GeneratedColumn<String>(
+    'duration',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _daysConsumedMeta = const VerificationMeta(
+    'daysConsumed',
+  );
+  @override
+  late final GeneratedColumn<double> daysConsumed = GeneratedColumn<double>(
+    'days_consumed',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _reasonMeta = const VerificationMeta('reason');
+  @override
+  late final GeneratedColumn<String> reason = GeneratedColumn<String>(
+    'reason',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _appliedOnMeta = const VerificationMeta(
+    'appliedOn',
+  );
+  @override
+  late final GeneratedColumn<DateTime> appliedOn = GeneratedColumn<DateTime>(
+    'applied_on',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    leaveType,
+    startDate,
+    endDate,
+    duration,
+    daysConsumed,
+    reason,
+    appliedOn,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'leave_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LeaveRecord> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('leave_type')) {
+      context.handle(
+        _leaveTypeMeta,
+        leaveType.isAcceptableOrUnknown(data['leave_type']!, _leaveTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_leaveTypeMeta);
+    }
+    if (data.containsKey('start_date')) {
+      context.handle(
+        _startDateMeta,
+        startDate.isAcceptableOrUnknown(data['start_date']!, _startDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startDateMeta);
+    }
+    if (data.containsKey('end_date')) {
+      context.handle(
+        _endDateMeta,
+        endDate.isAcceptableOrUnknown(data['end_date']!, _endDateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_endDateMeta);
+    }
+    if (data.containsKey('duration')) {
+      context.handle(
+        _durationMeta,
+        duration.isAcceptableOrUnknown(data['duration']!, _durationMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_durationMeta);
+    }
+    if (data.containsKey('days_consumed')) {
+      context.handle(
+        _daysConsumedMeta,
+        daysConsumed.isAcceptableOrUnknown(
+          data['days_consumed']!,
+          _daysConsumedMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_daysConsumedMeta);
+    }
+    if (data.containsKey('reason')) {
+      context.handle(
+        _reasonMeta,
+        reason.isAcceptableOrUnknown(data['reason']!, _reasonMeta),
+      );
+    }
+    if (data.containsKey('applied_on')) {
+      context.handle(
+        _appliedOnMeta,
+        appliedOn.isAcceptableOrUnknown(data['applied_on']!, _appliedOnMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_appliedOnMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  LeaveRecord map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LeaveRecord(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      leaveType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}leave_type'],
+      )!,
+      startDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}start_date'],
+      )!,
+      endDate: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}end_date'],
+      )!,
+      duration: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}duration'],
+      )!,
+      daysConsumed: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}days_consumed'],
+      )!,
+      reason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}reason'],
+      ),
+      appliedOn: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}applied_on'],
+      )!,
+    );
+  }
+
+  @override
+  $LeaveRecordsTable createAlias(String alias) {
+    return $LeaveRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class LeaveRecord extends DataClass implements Insertable<LeaveRecord> {
+  final int id;
+  final String leaveType;
+  final DateTime startDate;
+  final DateTime endDate;
+  final String duration;
+  final double daysConsumed;
+  final String? reason;
+  final DateTime appliedOn;
+  const LeaveRecord({
+    required this.id,
+    required this.leaveType,
+    required this.startDate,
+    required this.endDate,
+    required this.duration,
+    required this.daysConsumed,
+    this.reason,
+    required this.appliedOn,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['leave_type'] = Variable<String>(leaveType);
+    map['start_date'] = Variable<DateTime>(startDate);
+    map['end_date'] = Variable<DateTime>(endDate);
+    map['duration'] = Variable<String>(duration);
+    map['days_consumed'] = Variable<double>(daysConsumed);
+    if (!nullToAbsent || reason != null) {
+      map['reason'] = Variable<String>(reason);
+    }
+    map['applied_on'] = Variable<DateTime>(appliedOn);
+    return map;
+  }
+
+  LeaveRecordsCompanion toCompanion(bool nullToAbsent) {
+    return LeaveRecordsCompanion(
+      id: Value(id),
+      leaveType: Value(leaveType),
+      startDate: Value(startDate),
+      endDate: Value(endDate),
+      duration: Value(duration),
+      daysConsumed: Value(daysConsumed),
+      reason: reason == null && nullToAbsent
+          ? const Value.absent()
+          : Value(reason),
+      appliedOn: Value(appliedOn),
+    );
+  }
+
+  factory LeaveRecord.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LeaveRecord(
+      id: serializer.fromJson<int>(json['id']),
+      leaveType: serializer.fromJson<String>(json['leaveType']),
+      startDate: serializer.fromJson<DateTime>(json['startDate']),
+      endDate: serializer.fromJson<DateTime>(json['endDate']),
+      duration: serializer.fromJson<String>(json['duration']),
+      daysConsumed: serializer.fromJson<double>(json['daysConsumed']),
+      reason: serializer.fromJson<String?>(json['reason']),
+      appliedOn: serializer.fromJson<DateTime>(json['appliedOn']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'leaveType': serializer.toJson<String>(leaveType),
+      'startDate': serializer.toJson<DateTime>(startDate),
+      'endDate': serializer.toJson<DateTime>(endDate),
+      'duration': serializer.toJson<String>(duration),
+      'daysConsumed': serializer.toJson<double>(daysConsumed),
+      'reason': serializer.toJson<String?>(reason),
+      'appliedOn': serializer.toJson<DateTime>(appliedOn),
+    };
+  }
+
+  LeaveRecord copyWith({
+    int? id,
+    String? leaveType,
+    DateTime? startDate,
+    DateTime? endDate,
+    String? duration,
+    double? daysConsumed,
+    Value<String?> reason = const Value.absent(),
+    DateTime? appliedOn,
+  }) => LeaveRecord(
+    id: id ?? this.id,
+    leaveType: leaveType ?? this.leaveType,
+    startDate: startDate ?? this.startDate,
+    endDate: endDate ?? this.endDate,
+    duration: duration ?? this.duration,
+    daysConsumed: daysConsumed ?? this.daysConsumed,
+    reason: reason.present ? reason.value : this.reason,
+    appliedOn: appliedOn ?? this.appliedOn,
+  );
+  LeaveRecord copyWithCompanion(LeaveRecordsCompanion data) {
+    return LeaveRecord(
+      id: data.id.present ? data.id.value : this.id,
+      leaveType: data.leaveType.present ? data.leaveType.value : this.leaveType,
+      startDate: data.startDate.present ? data.startDate.value : this.startDate,
+      endDate: data.endDate.present ? data.endDate.value : this.endDate,
+      duration: data.duration.present ? data.duration.value : this.duration,
+      daysConsumed: data.daysConsumed.present
+          ? data.daysConsumed.value
+          : this.daysConsumed,
+      reason: data.reason.present ? data.reason.value : this.reason,
+      appliedOn: data.appliedOn.present ? data.appliedOn.value : this.appliedOn,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LeaveRecord(')
+          ..write('id: $id, ')
+          ..write('leaveType: $leaveType, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('duration: $duration, ')
+          ..write('daysConsumed: $daysConsumed, ')
+          ..write('reason: $reason, ')
+          ..write('appliedOn: $appliedOn')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    leaveType,
+    startDate,
+    endDate,
+    duration,
+    daysConsumed,
+    reason,
+    appliedOn,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LeaveRecord &&
+          other.id == this.id &&
+          other.leaveType == this.leaveType &&
+          other.startDate == this.startDate &&
+          other.endDate == this.endDate &&
+          other.duration == this.duration &&
+          other.daysConsumed == this.daysConsumed &&
+          other.reason == this.reason &&
+          other.appliedOn == this.appliedOn);
+}
+
+class LeaveRecordsCompanion extends UpdateCompanion<LeaveRecord> {
+  final Value<int> id;
+  final Value<String> leaveType;
+  final Value<DateTime> startDate;
+  final Value<DateTime> endDate;
+  final Value<String> duration;
+  final Value<double> daysConsumed;
+  final Value<String?> reason;
+  final Value<DateTime> appliedOn;
+  const LeaveRecordsCompanion({
+    this.id = const Value.absent(),
+    this.leaveType = const Value.absent(),
+    this.startDate = const Value.absent(),
+    this.endDate = const Value.absent(),
+    this.duration = const Value.absent(),
+    this.daysConsumed = const Value.absent(),
+    this.reason = const Value.absent(),
+    this.appliedOn = const Value.absent(),
+  });
+  LeaveRecordsCompanion.insert({
+    this.id = const Value.absent(),
+    required String leaveType,
+    required DateTime startDate,
+    required DateTime endDate,
+    required String duration,
+    required double daysConsumed,
+    this.reason = const Value.absent(),
+    required DateTime appliedOn,
+  }) : leaveType = Value(leaveType),
+       startDate = Value(startDate),
+       endDate = Value(endDate),
+       duration = Value(duration),
+       daysConsumed = Value(daysConsumed),
+       appliedOn = Value(appliedOn);
+  static Insertable<LeaveRecord> custom({
+    Expression<int>? id,
+    Expression<String>? leaveType,
+    Expression<DateTime>? startDate,
+    Expression<DateTime>? endDate,
+    Expression<String>? duration,
+    Expression<double>? daysConsumed,
+    Expression<String>? reason,
+    Expression<DateTime>? appliedOn,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (leaveType != null) 'leave_type': leaveType,
+      if (startDate != null) 'start_date': startDate,
+      if (endDate != null) 'end_date': endDate,
+      if (duration != null) 'duration': duration,
+      if (daysConsumed != null) 'days_consumed': daysConsumed,
+      if (reason != null) 'reason': reason,
+      if (appliedOn != null) 'applied_on': appliedOn,
+    });
+  }
+
+  LeaveRecordsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? leaveType,
+    Value<DateTime>? startDate,
+    Value<DateTime>? endDate,
+    Value<String>? duration,
+    Value<double>? daysConsumed,
+    Value<String?>? reason,
+    Value<DateTime>? appliedOn,
+  }) {
+    return LeaveRecordsCompanion(
+      id: id ?? this.id,
+      leaveType: leaveType ?? this.leaveType,
+      startDate: startDate ?? this.startDate,
+      endDate: endDate ?? this.endDate,
+      duration: duration ?? this.duration,
+      daysConsumed: daysConsumed ?? this.daysConsumed,
+      reason: reason ?? this.reason,
+      appliedOn: appliedOn ?? this.appliedOn,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (leaveType.present) {
+      map['leave_type'] = Variable<String>(leaveType.value);
+    }
+    if (startDate.present) {
+      map['start_date'] = Variable<DateTime>(startDate.value);
+    }
+    if (endDate.present) {
+      map['end_date'] = Variable<DateTime>(endDate.value);
+    }
+    if (duration.present) {
+      map['duration'] = Variable<String>(duration.value);
+    }
+    if (daysConsumed.present) {
+      map['days_consumed'] = Variable<double>(daysConsumed.value);
+    }
+    if (reason.present) {
+      map['reason'] = Variable<String>(reason.value);
+    }
+    if (appliedOn.present) {
+      map['applied_on'] = Variable<DateTime>(appliedOn.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LeaveRecordsCompanion(')
+          ..write('id: $id, ')
+          ..write('leaveType: $leaveType, ')
+          ..write('startDate: $startDate, ')
+          ..write('endDate: $endDate, ')
+          ..write('duration: $duration, ')
+          ..write('daysConsumed: $daysConsumed, ')
+          ..write('reason: $reason, ')
+          ..write('appliedOn: $appliedOn')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1535,6 +2402,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $TimeLogsTable timeLogs = $TimeLogsTable(this);
   late final $LeaveLogsTable leaveLogs = $LeaveLogsTable(this);
   late final $DayOverridesTable dayOverrides = $DayOverridesTable(this);
+  late final $LeaveRecordsTable leaveRecords = $LeaveRecordsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1544,6 +2412,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     timeLogs,
     leaveLogs,
     dayOverrides,
+    leaveRecords,
   ];
 }
 
@@ -1559,6 +2428,13 @@ typedef $$UserSettingsTableCreateCompanionBuilder =
       Value<String?> displayName,
       Value<int> dailyTargetMinutes,
       Value<String> weekendDays,
+      Value<int> officeStartMin,
+      Value<int> officeEndMin,
+      Value<bool> ramadanEnabled,
+      Value<int> ramadanStartMin,
+      Value<int> ramadanEndMin,
+      Value<DateTime?> joinDate,
+      Value<bool> biometricLock,
     });
 typedef $$UserSettingsTableUpdateCompanionBuilder =
     UserSettingsCompanion Function({
@@ -1572,6 +2448,13 @@ typedef $$UserSettingsTableUpdateCompanionBuilder =
       Value<String?> displayName,
       Value<int> dailyTargetMinutes,
       Value<String> weekendDays,
+      Value<int> officeStartMin,
+      Value<int> officeEndMin,
+      Value<bool> ramadanEnabled,
+      Value<int> ramadanStartMin,
+      Value<int> ramadanEndMin,
+      Value<DateTime?> joinDate,
+      Value<bool> biometricLock,
     });
 
 class $$UserSettingsTableFilterComposer
@@ -1630,6 +2513,41 @@ class $$UserSettingsTableFilterComposer
 
   ColumnFilters<String> get weekendDays => $composableBuilder(
     column: $table.weekendDays,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get officeStartMin => $composableBuilder(
+    column: $table.officeStartMin,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get officeEndMin => $composableBuilder(
+    column: $table.officeEndMin,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get ramadanEnabled => $composableBuilder(
+    column: $table.ramadanEnabled,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get ramadanStartMin => $composableBuilder(
+    column: $table.ramadanStartMin,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get ramadanEndMin => $composableBuilder(
+    column: $table.ramadanEndMin,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get joinDate => $composableBuilder(
+    column: $table.joinDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get biometricLock => $composableBuilder(
+    column: $table.biometricLock,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -1692,6 +2610,41 @@ class $$UserSettingsTableOrderingComposer
     column: $table.weekendDays,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<int> get officeStartMin => $composableBuilder(
+    column: $table.officeStartMin,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get officeEndMin => $composableBuilder(
+    column: $table.officeEndMin,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get ramadanEnabled => $composableBuilder(
+    column: $table.ramadanEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get ramadanStartMin => $composableBuilder(
+    column: $table.ramadanStartMin,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get ramadanEndMin => $composableBuilder(
+    column: $table.ramadanEndMin,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get joinDate => $composableBuilder(
+    column: $table.joinDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get biometricLock => $composableBuilder(
+    column: $table.biometricLock,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$UserSettingsTableAnnotationComposer
@@ -1744,6 +2697,39 @@ class $$UserSettingsTableAnnotationComposer
     column: $table.weekendDays,
     builder: (column) => column,
   );
+
+  GeneratedColumn<int> get officeStartMin => $composableBuilder(
+    column: $table.officeStartMin,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get officeEndMin => $composableBuilder(
+    column: $table.officeEndMin,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get ramadanEnabled => $composableBuilder(
+    column: $table.ramadanEnabled,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get ramadanStartMin => $composableBuilder(
+    column: $table.ramadanStartMin,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get ramadanEndMin => $composableBuilder(
+    column: $table.ramadanEndMin,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get joinDate =>
+      $composableBuilder(column: $table.joinDate, builder: (column) => column);
+
+  GeneratedColumn<bool> get biometricLock => $composableBuilder(
+    column: $table.biometricLock,
+    builder: (column) => column,
+  );
 }
 
 class $$UserSettingsTableTableManager
@@ -1787,6 +2773,13 @@ class $$UserSettingsTableTableManager
                 Value<String?> displayName = const Value.absent(),
                 Value<int> dailyTargetMinutes = const Value.absent(),
                 Value<String> weekendDays = const Value.absent(),
+                Value<int> officeStartMin = const Value.absent(),
+                Value<int> officeEndMin = const Value.absent(),
+                Value<bool> ramadanEnabled = const Value.absent(),
+                Value<int> ramadanStartMin = const Value.absent(),
+                Value<int> ramadanEndMin = const Value.absent(),
+                Value<DateTime?> joinDate = const Value.absent(),
+                Value<bool> biometricLock = const Value.absent(),
               }) => UserSettingsCompanion(
                 id: id,
                 gender: gender,
@@ -1798,6 +2791,13 @@ class $$UserSettingsTableTableManager
                 displayName: displayName,
                 dailyTargetMinutes: dailyTargetMinutes,
                 weekendDays: weekendDays,
+                officeStartMin: officeStartMin,
+                officeEndMin: officeEndMin,
+                ramadanEnabled: ramadanEnabled,
+                ramadanStartMin: ramadanStartMin,
+                ramadanEndMin: ramadanEndMin,
+                joinDate: joinDate,
+                biometricLock: biometricLock,
               ),
           createCompanionCallback:
               ({
@@ -1811,6 +2811,13 @@ class $$UserSettingsTableTableManager
                 Value<String?> displayName = const Value.absent(),
                 Value<int> dailyTargetMinutes = const Value.absent(),
                 Value<String> weekendDays = const Value.absent(),
+                Value<int> officeStartMin = const Value.absent(),
+                Value<int> officeEndMin = const Value.absent(),
+                Value<bool> ramadanEnabled = const Value.absent(),
+                Value<int> ramadanStartMin = const Value.absent(),
+                Value<int> ramadanEndMin = const Value.absent(),
+                Value<DateTime?> joinDate = const Value.absent(),
+                Value<bool> biometricLock = const Value.absent(),
               }) => UserSettingsCompanion.insert(
                 id: id,
                 gender: gender,
@@ -1822,6 +2829,13 @@ class $$UserSettingsTableTableManager
                 displayName: displayName,
                 dailyTargetMinutes: dailyTargetMinutes,
                 weekendDays: weekendDays,
+                officeStartMin: officeStartMin,
+                officeEndMin: officeEndMin,
+                ramadanEnabled: ramadanEnabled,
+                ramadanStartMin: ramadanStartMin,
+                ramadanEndMin: ramadanEndMin,
+                joinDate: joinDate,
+                biometricLock: biometricLock,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -2367,6 +3381,259 @@ typedef $$DayOverridesTableProcessedTableManager =
       DayOverride,
       PrefetchHooks Function()
     >;
+typedef $$LeaveRecordsTableCreateCompanionBuilder =
+    LeaveRecordsCompanion Function({
+      Value<int> id,
+      required String leaveType,
+      required DateTime startDate,
+      required DateTime endDate,
+      required String duration,
+      required double daysConsumed,
+      Value<String?> reason,
+      required DateTime appliedOn,
+    });
+typedef $$LeaveRecordsTableUpdateCompanionBuilder =
+    LeaveRecordsCompanion Function({
+      Value<int> id,
+      Value<String> leaveType,
+      Value<DateTime> startDate,
+      Value<DateTime> endDate,
+      Value<String> duration,
+      Value<double> daysConsumed,
+      Value<String?> reason,
+      Value<DateTime> appliedOn,
+    });
+
+class $$LeaveRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $LeaveRecordsTable> {
+  $$LeaveRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get leaveType => $composableBuilder(
+    column: $table.leaveType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get endDate => $composableBuilder(
+    column: $table.endDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get duration => $composableBuilder(
+    column: $table.duration,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get daysConsumed => $composableBuilder(
+    column: $table.daysConsumed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get reason => $composableBuilder(
+    column: $table.reason,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get appliedOn => $composableBuilder(
+    column: $table.appliedOn,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LeaveRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $LeaveRecordsTable> {
+  $$LeaveRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get leaveType => $composableBuilder(
+    column: $table.leaveType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startDate => $composableBuilder(
+    column: $table.startDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get endDate => $composableBuilder(
+    column: $table.endDate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get duration => $composableBuilder(
+    column: $table.duration,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get daysConsumed => $composableBuilder(
+    column: $table.daysConsumed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get reason => $composableBuilder(
+    column: $table.reason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get appliedOn => $composableBuilder(
+    column: $table.appliedOn,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LeaveRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LeaveRecordsTable> {
+  $$LeaveRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get leaveType =>
+      $composableBuilder(column: $table.leaveType, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startDate =>
+      $composableBuilder(column: $table.startDate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get endDate =>
+      $composableBuilder(column: $table.endDate, builder: (column) => column);
+
+  GeneratedColumn<String> get duration =>
+      $composableBuilder(column: $table.duration, builder: (column) => column);
+
+  GeneratedColumn<double> get daysConsumed => $composableBuilder(
+    column: $table.daysConsumed,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get reason =>
+      $composableBuilder(column: $table.reason, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get appliedOn =>
+      $composableBuilder(column: $table.appliedOn, builder: (column) => column);
+}
+
+class $$LeaveRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $LeaveRecordsTable,
+          LeaveRecord,
+          $$LeaveRecordsTableFilterComposer,
+          $$LeaveRecordsTableOrderingComposer,
+          $$LeaveRecordsTableAnnotationComposer,
+          $$LeaveRecordsTableCreateCompanionBuilder,
+          $$LeaveRecordsTableUpdateCompanionBuilder,
+          (
+            LeaveRecord,
+            BaseReferences<_$AppDatabase, $LeaveRecordsTable, LeaveRecord>,
+          ),
+          LeaveRecord,
+          PrefetchHooks Function()
+        > {
+  $$LeaveRecordsTableTableManager(_$AppDatabase db, $LeaveRecordsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LeaveRecordsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LeaveRecordsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LeaveRecordsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> leaveType = const Value.absent(),
+                Value<DateTime> startDate = const Value.absent(),
+                Value<DateTime> endDate = const Value.absent(),
+                Value<String> duration = const Value.absent(),
+                Value<double> daysConsumed = const Value.absent(),
+                Value<String?> reason = const Value.absent(),
+                Value<DateTime> appliedOn = const Value.absent(),
+              }) => LeaveRecordsCompanion(
+                id: id,
+                leaveType: leaveType,
+                startDate: startDate,
+                endDate: endDate,
+                duration: duration,
+                daysConsumed: daysConsumed,
+                reason: reason,
+                appliedOn: appliedOn,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String leaveType,
+                required DateTime startDate,
+                required DateTime endDate,
+                required String duration,
+                required double daysConsumed,
+                Value<String?> reason = const Value.absent(),
+                required DateTime appliedOn,
+              }) => LeaveRecordsCompanion.insert(
+                id: id,
+                leaveType: leaveType,
+                startDate: startDate,
+                endDate: endDate,
+                duration: duration,
+                daysConsumed: daysConsumed,
+                reason: reason,
+                appliedOn: appliedOn,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LeaveRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $LeaveRecordsTable,
+      LeaveRecord,
+      $$LeaveRecordsTableFilterComposer,
+      $$LeaveRecordsTableOrderingComposer,
+      $$LeaveRecordsTableAnnotationComposer,
+      $$LeaveRecordsTableCreateCompanionBuilder,
+      $$LeaveRecordsTableUpdateCompanionBuilder,
+      (
+        LeaveRecord,
+        BaseReferences<_$AppDatabase, $LeaveRecordsTable, LeaveRecord>,
+      ),
+      LeaveRecord,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2379,4 +3646,6 @@ class $AppDatabaseManager {
       $$LeaveLogsTableTableManager(_db, _db.leaveLogs);
   $$DayOverridesTableTableManager get dayOverrides =>
       $$DayOverridesTableTableManager(_db, _db.dayOverrides);
+  $$LeaveRecordsTableTableManager get leaveRecords =>
+      $$LeaveRecordsTableTableManager(_db, _db.leaveRecords);
 }

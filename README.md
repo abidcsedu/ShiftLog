@@ -12,13 +12,20 @@ month-wise **8h 30m per working day** target and a heat-map calendar.
 - **Sign In / Sign Out** with multiple sessions per day; the day's total is the cumulative
   sum of every session and ticks live (with seconds) while a session is open.
 - **Work modes** per session — Office, WFH, Outside Office — chosen from a dropdown.
-- **Add / edit / delete** any session, including backfilling past days.
+- **Add / edit / delete** any session (with an optional note), including backfilling past days.
+- **Break-even time** — while clocked in, Home shows "Leave by 6:42 PM" to hit the target.
+- **Forgot-to-clock-out** — a session open over 16h shows a banner to end it.
+- **Notifications** — an ongoing notification while clocked in, plus clock-in/out confirmations.
+
+**Office hours & schedule**
+- **Office hours** (start/end times) define the daily target; **Ramadan mode** switches to a
+  shorter alternate schedule.
 
 **Limits & balances**
 - **WFH limits** — max 2 / month and 12 / year, counted at the day level; Sign In is
   blocked once a cap is hit.
-- **Leave** — gender-based yearly allocation (Male 25 / Female 30); log Half (−0.5) or
-  Full (−1.0) day.
+- **Typed leave** — Casual (15), Sick (10), Parental (10) and Maternity (112, female-only),
+  pro-rated by join date; apply over a date range (full or half day) with live balances.
 
 **Work week & holidays**
 - **Weekend** = Friday + Saturday by default, editable in Settings.
@@ -38,6 +45,7 @@ month-wise **8h 30m per working day** target and a heat-map calendar.
 **App & data**
 - Bottom-nav UI (Home / Insights / History / Settings); gradient hero with a goal-oriented
   progress ring; light / dark theme (persisted; follows system by default).
+- **App lock** — optional device biometric/PIN to open the app.
 - **Local backup & restore** — JSON export/import (share sheet + file picker) and CSV export.
 
 ## Tech stack

@@ -49,3 +49,6 @@ app.*.map.json
 
 # Claude Code local artifacts
 .claude/
+
+# Local scratch (e.g. other apps cloned for reference)
+temp/

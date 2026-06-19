@@ -11,7 +11,7 @@ void main() {
     final srcDb = AppDatabase(NativeDatabase.memory());
     final src = Repository(srcDb);
     await src.createSettings(Gender.female);
-    await src.updateSettings(displayName: 'Abid', dailyTargetMinutes: 480);
+    await src.updateSettings(displayName: 'Abid', officeEndMin: 1110);
     await src.addSession(
       DateTime(2026, 6, 1, 9),
       DateTime(2026, 6, 1, 17),
@@ -22,7 +22,13 @@ void main() {
       DateTime(2026, 6, 2, 18),
       WorkMode.office,
     );
-    await src.logLeave(LeaveType.half, DateTime(2026, 6, 3));
+    await src.addLeaveRecord(
+      category: LeaveCategory.casual,
+      startDate: DateTime(2026, 6, 3),
+      endDate: DateTime(2026, 6, 3),
+      duration: LeaveType.full,
+      daysConsumed: 1,
+    );
 
     final json = await src.exportJson();
 
@@ -32,16 +38,16 @@ void main() {
     await dst.importJson(json);
 
     final sessions = await dst.watchAllSessions().first;
-    final leaves = await dst.watchAllLeaves().first;
+    final leaves = await dst.watchLeaveRecords().first;
     final settings = await dstDb.settingsOnce();
 
     expect(sessions.length, 2);
     expect(leaves.length, 1);
+    expect(leaves.first.category, LeaveCategory.casual);
     expect(wfhDaysInMonth(sessions, 2026, 6), 1);
     expect(settings!.displayName, 'Abid');
     expect(settings.gender, 'female');
-    expect(settings.yearlyHolidayAllocation, 30);
-    expect(settings.dailyTargetMinutes, 480);
+    expect(settings.officeEndMin, 1110);
     // A WFH session preserved its mode and times.
     final wfh = sessions.firstWhere((s) => s.mode == WorkMode.wfh);
     expect(wfh.clockIn, DateTime(2026, 6, 1, 9));

@@ -23,22 +23,28 @@ class Repository {
         note: r.note,
       );
 
-  LeaveEntry _toLeave(LeaveLog r) => LeaveEntry(
+  LeaveRecordModel _toLeaveRecord(LeaveRecord r) => LeaveRecordModel(
         id: r.id,
-        dayKey: r.dayKey,
-        type: LeaveTypeX.fromDb(r.type),
-        note: r.note,
+        category: LeaveCategoryX.fromDb(r.leaveType),
+        startDate: r.startDate,
+        endDate: r.endDate,
+        duration: LeaveTypeX.fromDb(r.duration),
+        daysConsumed: r.daysConsumed,
+        reason: r.reason,
+        appliedOn: r.appliedOn,
       );
 
   // --- settings ---
   Stream<UserSetting?> watchSettings() => db.watchSettings();
 
-  Future<void> createSettings(Gender gender, {DateTime? now}) async {
+  Future<void> createSettings(Gender gender,
+      {DateTime? now, DateTime? joinDate}) async {
     await db.into(db.userSettings).insertOnConflictUpdate(
           UserSettingsCompanion.insert(
             gender: gender.db,
-            yearlyHolidayAllocation: allocationFor(gender),
+            yearlyHolidayAllocation: 0, // legacy column, unused
             createdAt: now ?? DateTime.now(),
+            joinDate: Value(joinDate),
           ),
         );
   }
@@ -52,33 +58,53 @@ class Repository {
   /// Update any editable settings field (omitted args are left unchanged).
   Future<void> updateSettings({
     Gender? gender,
-    int? yearlyHolidayAllocation,
     int? monthlyWfhLimit,
     int? yearlyWfhLimit,
-    int? dailyTargetMinutes,
     String? displayName,
     Set<int>? weekendDays,
+    int? officeStartMin,
+    int? officeEndMin,
+    bool? ramadanEnabled,
+    int? ramadanStartMin,
+    int? ramadanEndMin,
+    DateTime? joinDate,
+    bool clearJoinDate = false,
+    bool? biometricLock,
   }) async {
     await (db.update(db.userSettings)..where((t) => t.id.equals(1))).write(
       UserSettingsCompanion(
         gender: gender == null ? const Value.absent() : Value(gender.db),
-        yearlyHolidayAllocation: yearlyHolidayAllocation == null
-            ? const Value.absent()
-            : Value(yearlyHolidayAllocation),
         monthlyWfhLimit: monthlyWfhLimit == null
             ? const Value.absent()
             : Value(monthlyWfhLimit),
         yearlyWfhLimit: yearlyWfhLimit == null
             ? const Value.absent()
             : Value(yearlyWfhLimit),
-        dailyTargetMinutes: dailyTargetMinutes == null
-            ? const Value.absent()
-            : Value(dailyTargetMinutes),
         displayName:
             displayName == null ? const Value.absent() : Value(displayName),
         weekendDays: weekendDays == null
             ? const Value.absent()
             : Value((weekendDays.toList()..sort()).join(',')),
+        officeStartMin: officeStartMin == null
+            ? const Value.absent()
+            : Value(officeStartMin),
+        officeEndMin:
+            officeEndMin == null ? const Value.absent() : Value(officeEndMin),
+        ramadanEnabled: ramadanEnabled == null
+            ? const Value.absent()
+            : Value(ramadanEnabled),
+        ramadanStartMin: ramadanStartMin == null
+            ? const Value.absent()
+            : Value(ramadanStartMin),
+        ramadanEndMin: ramadanEndMin == null
+            ? const Value.absent()
+            : Value(ramadanEndMin),
+        joinDate: clearJoinDate
+            ? const Value(null)
+            : (joinDate == null ? const Value.absent() : Value(joinDate)),
+        biometricLock: biometricLock == null
+            ? const Value.absent()
+            : Value(biometricLock),
       ),
     );
   }
@@ -104,8 +130,8 @@ class Repository {
   Stream<List<WorkSession>> watchSessionsForDay(String key) =>
       db.watchTimeLogsForDay(key).map((rows) => rows.map(_toSession).toList());
 
-  Stream<List<LeaveEntry>> watchAllLeaves() =>
-      db.watchAllLeaves().map((rows) => rows.map(_toLeave).toList());
+  Stream<List<LeaveRecordModel>> watchLeaveRecords() =>
+      db.watchLeaveRecords().map((rows) => rows.map(_toLeaveRecord).toList());
 
   // --- clock in / out ---
   Future<void> clockIn(WorkMode mode, {DateTime? now}) async {
@@ -129,18 +155,26 @@ class Repository {
     return true;
   }
 
+  /// Close a specific (possibly overdue) session at an explicit time.
+  Future<void> closeSessionAt(int id, DateTime at) async {
+    await (db.update(db.timeLogs)..where((t) => t.id.equals(id)))
+        .write(TimeLogsCompanion(clockOut: Value(at)));
+  }
+
   /// Add a session with explicit times (manual / backfill entry).
   Future<void> addSession(
     DateTime clockIn,
     DateTime? clockOut,
-    WorkMode mode,
-  ) async {
+    WorkMode mode, {
+    String? note,
+  }) async {
     await db.into(db.timeLogs).insert(
           TimeLogsCompanion.insert(
             dayKey: dayKey(clockIn),
             clockIn: clockIn,
             clockOut: Value(clockOut),
             workMode: mode.db,
+            note: Value(note),
           ),
         );
   }
@@ -151,6 +185,7 @@ class Repository {
     required DateTime clockIn,
     DateTime? clockOut,
     required WorkMode mode,
+    String? note,
   }) async {
     await (db.update(db.timeLogs)..where((t) => t.id.equals(id))).write(
       TimeLogsCompanion(
@@ -158,6 +193,7 @@ class Repository {
         clockIn: Value(clockIn),
         clockOut: Value(clockOut),
         workMode: Value(mode.db),
+        note: Value(note),
       ),
     );
   }
@@ -165,41 +201,58 @@ class Repository {
   Future<void> deleteSession(int id) async =>
       (db.delete(db.timeLogs)..where((t) => t.id.equals(id))).go();
 
-  // --- leave ---
-  Future<void> logLeave(LeaveType type, DateTime day, {String? note}) async {
-    await db.into(db.leaveLogs).insert(
-          LeaveLogsCompanion.insert(
-            dayKey: dayKey(day),
-            type: type.db,
-            note: Value(note),
+  // --- leave (typed records) ---
+  Future<void> addLeaveRecord({
+    required LeaveCategory category,
+    required DateTime startDate,
+    required DateTime endDate,
+    required LeaveType duration,
+    required double daysConsumed,
+    String? reason,
+    DateTime? appliedOn,
+  }) async {
+    await db.into(db.leaveRecords).insert(
+          LeaveRecordsCompanion.insert(
+            leaveType: category.db,
+            startDate: startDate,
+            endDate: endDate,
+            duration: duration.db,
+            daysConsumed: daysConsumed,
+            reason: Value(reason),
+            appliedOn: appliedOn ?? DateTime.now(),
           ),
         );
   }
 
-  Future<void> deleteLeave(int id) async =>
-      (db.delete(db.leaveLogs)..where((t) => t.id.equals(id))).go();
+  Future<void> deleteLeaveRecord(int id) async =>
+      (db.delete(db.leaveRecords)..where((t) => t.id.equals(id))).go();
 
   // --- full backup (JSON) — round-trips every field for phone transfer ---
   /// Serializes settings + all sessions + leaves to a JSON backup string.
   Future<String> exportJson() async {
     final s = await db.settingsOnce();
     final sessions = await db.allTimeLogsOnce();
-    final leaves = await db.allLeavesOnce();
+    final records = await db.leaveRecordsOnce();
     final map = {
       'app': 'ShiftLog',
-      'version': 1,
+      'version': 2,
       'exportedAt': DateTime.now().toIso8601String(),
       'settings': s == null
           ? null
           : {
               'gender': s.gender,
-              'yearlyHolidayAllocation': s.yearlyHolidayAllocation,
               'yearlyWfhLimit': s.yearlyWfhLimit,
               'monthlyWfhLimit': s.monthlyWfhLimit,
-              'dailyTargetMinutes': s.dailyTargetMinutes,
               'displayName': s.displayName,
               'darkMode': s.darkMode,
               'weekendDays': s.weekendDays,
+              'officeStartMin': s.officeStartMin,
+              'officeEndMin': s.officeEndMin,
+              'ramadanEnabled': s.ramadanEnabled,
+              'ramadanStartMin': s.ramadanStartMin,
+              'ramadanEndMin': s.ramadanEndMin,
+              'joinDate': s.joinDate?.toIso8601String(),
+              'biometricLock': s.biometricLock,
               'createdAt': s.createdAt.toIso8601String(),
             },
       'sessions': [
@@ -212,9 +265,17 @@ class Repository {
             'note': r.note,
           },
       ],
-      'leaves': [
-        for (final r in leaves)
-          {'dayKey': r.dayKey, 'type': r.type, 'note': r.note},
+      'leaveRecords': [
+        for (final r in records)
+          {
+            'leaveType': r.leaveType,
+            'startDate': r.startDate.toIso8601String(),
+            'endDate': r.endDate.toIso8601String(),
+            'duration': r.duration,
+            'daysConsumed': r.daysConsumed,
+            'reason': r.reason,
+            'appliedOn': r.appliedOn.toIso8601String(),
+          },
       ],
       'overrides': [
         for (final r in await db.overridesOnce())
@@ -234,7 +295,7 @@ class Repository {
     final map = parsed.cast<String, dynamic>();
     await db.transaction(() async {
       await db.delete(db.timeLogs).go();
-      await db.delete(db.leaveLogs).go();
+      await db.delete(db.leaveRecords).go();
       await db.delete(db.dayOverrides).go();
 
       final s = map['settings'] as Map<String, dynamic>?;
@@ -242,15 +303,22 @@ class Repository {
         await db.into(db.userSettings).insertOnConflictUpdate(
               UserSettingsCompanion.insert(
                 gender: s['gender'] as String,
-                yearlyHolidayAllocation: s['yearlyHolidayAllocation'] as int,
+                yearlyHolidayAllocation: 0,
                 createdAt: DateTime.parse(s['createdAt'] as String),
-                yearlyWfhLimit: Value(s['yearlyWfhLimit'] as int),
-                monthlyWfhLimit: Value(s['monthlyWfhLimit'] as int),
-                dailyTargetMinutes: Value(s['dailyTargetMinutes'] as int),
+                yearlyWfhLimit: Value(s['yearlyWfhLimit'] as int? ?? 12),
+                monthlyWfhLimit: Value(s['monthlyWfhLimit'] as int? ?? 2),
                 displayName: Value(s['displayName'] as String?),
                 darkMode: Value(s['darkMode'] as bool?),
-                weekendDays: Value(
-                    (s['weekendDays'] as String?) ?? '5,6'),
+                weekendDays: Value((s['weekendDays'] as String?) ?? '5,6'),
+                officeStartMin: Value(s['officeStartMin'] as int? ?? 570),
+                officeEndMin: Value(s['officeEndMin'] as int? ?? 1080),
+                ramadanEnabled: Value(s['ramadanEnabled'] as bool? ?? false),
+                ramadanStartMin: Value(s['ramadanStartMin'] as int? ?? 570),
+                ramadanEndMin: Value(s['ramadanEndMin'] as int? ?? 930),
+                joinDate: Value(s['joinDate'] == null
+                    ? null
+                    : DateTime.parse(s['joinDate'] as String)),
+                biometricLock: Value(s['biometricLock'] as bool? ?? false),
               ),
             );
       }
@@ -276,12 +344,17 @@ class Repository {
               ),
             );
       }
-      for (final j in (map['leaves'] as List).cast<Map<String, dynamic>>()) {
-        await db.into(db.leaveLogs).insert(
-              LeaveLogsCompanion.insert(
-                dayKey: j['dayKey'] as String,
-                type: j['type'] as String,
-                note: Value(j['note'] as String?),
+      for (final j in ((map['leaveRecords'] as List?) ?? const [])
+          .cast<Map<String, dynamic>>()) {
+        await db.into(db.leaveRecords).insert(
+              LeaveRecordsCompanion.insert(
+                leaveType: j['leaveType'] as String,
+                startDate: DateTime.parse(j['startDate'] as String),
+                endDate: DateTime.parse(j['endDate'] as String),
+                duration: j['duration'] as String,
+                daysConsumed: (j['daysConsumed'] as num).toDouble(),
+                reason: Value(j['reason'] as String?),
+                appliedOn: DateTime.parse(j['appliedOn'] as String),
               ),
             );
       }
@@ -292,16 +365,18 @@ class Repository {
   /// Builds a CSV dump of all sessions and leaves for backup/sharing.
   Future<String> exportCsv() async {
     final sessions = await db.allTimeLogsOnce();
-    final leaves = await db.allLeavesOnce();
+    final records = await db.leaveRecordsOnce();
     final b = StringBuffer();
-    b.writeln('record_type,date,start,end,mode_or_type,minutes');
+    b.writeln('record_type,date,start,end,detail,minutes_or_days');
     for (final s in sessions) {
       final mins = (s.clockOut ?? s.clockIn).difference(s.clockIn).inMinutes;
       b.writeln('session,${s.dayKey},${s.clockIn.toIso8601String()},'
           '${s.clockOut?.toIso8601String() ?? ''},${s.workMode},$mins');
     }
-    for (final l in leaves) {
-      b.writeln('leave,${l.dayKey},,,${l.type},');
+    for (final l in records) {
+      b.writeln('leave,${l.startDate.toIso8601String().substring(0, 10)},'
+          '${l.startDate.toIso8601String()},${l.endDate.toIso8601String()},'
+          '${l.leaveType},${l.daysConsumed}');
     }
     return b.toString();
   }

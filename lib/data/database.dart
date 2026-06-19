@@ -21,6 +21,23 @@ class UserSettings extends Table {
   // Default '5,6' = Friday + Saturday.
   TextColumn get weekendDays =>
       text().withDefault(const Constant('5,6'))();
+  // Office hours as minutes-from-midnight; the daily target = end - start.
+  IntColumn get officeStartMin =>
+      integer().withDefault(const Constant(570))(); // 9:30
+  IntColumn get officeEndMin =>
+      integer().withDefault(const Constant(1080))(); // 18:00
+  // Ramadan alternate schedule (a shorter target while enabled).
+  BoolColumn get ramadanEnabled =>
+      boolean().withDefault(const Constant(false))();
+  IntColumn get ramadanStartMin =>
+      integer().withDefault(const Constant(570))(); // 9:30
+  IntColumn get ramadanEndMin =>
+      integer().withDefault(const Constant(930))(); // 15:30 (6h)
+  // Join date (for pro-rata leave entitlement).
+  DateTimeColumn get joinDate => dateTime().nullable()();
+  // Require device biometric/PIN to open the app.
+  BoolColumn get biometricLock =>
+      boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -44,6 +61,18 @@ class LeaveLogs extends Table {
   TextColumn get note => text().nullable()();
 }
 
+// Typed leave records (casual / sick / maternity / parental) with date ranges.
+class LeaveRecords extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get leaveType => text()(); // 'casual'|'sick'|'maternity'|'parental'
+  DateTimeColumn get startDate => dateTime()();
+  DateTimeColumn get endDate => dateTime()();
+  TextColumn get duration => text()(); // 'full' | 'half'
+  RealColumn get daysConsumed => real()();
+  TextColumn get reason => text().nullable()();
+  DateTimeColumn get appliedOn => dateTime()();
+}
+
 // Per-date working-day overrides for swaps/extra holidays.
 // type: 'off' (a normal working day given as holiday) |
 //       'work' (a weekend day designated as a working day).
@@ -55,13 +84,14 @@ class DayOverrides extends Table {
   Set<Column> get primaryKey => {dayKey};
 }
 
-@DriftDatabase(tables: [UserSettings, TimeLogs, LeaveLogs, DayOverrides])
+@DriftDatabase(
+    tables: [UserSettings, TimeLogs, LeaveLogs, DayOverrides, LeaveRecords])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
       : super(executor ?? driftDatabase(name: 'shiftlog'));
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -77,6 +107,16 @@ class AppDatabase extends _$AppDatabase {
           if (from < 4) {
             await m.addColumn(userSettings, userSettings.weekendDays);
             await m.createTable(dayOverrides);
+          }
+          if (from < 5) {
+            await m.addColumn(userSettings, userSettings.officeStartMin);
+            await m.addColumn(userSettings, userSettings.officeEndMin);
+            await m.addColumn(userSettings, userSettings.ramadanEnabled);
+            await m.addColumn(userSettings, userSettings.ramadanStartMin);
+            await m.addColumn(userSettings, userSettings.ramadanEndMin);
+            await m.addColumn(userSettings, userSettings.joinDate);
+            await m.addColumn(userSettings, userSettings.biometricLock);
+            await m.createTable(leaveRecords);
           }
         },
       );
@@ -119,4 +159,9 @@ class AppDatabase extends _$AppDatabase {
 
   Stream<List<DayOverride>> watchOverrides() => select(dayOverrides).watch();
   Future<List<DayOverride>> overridesOnce() => select(dayOverrides).get();
+
+  Stream<List<LeaveRecord>> watchLeaveRecords() =>
+      (select(leaveRecords)..orderBy([(t) => OrderingTerm.desc(t.appliedOn)]))
+          .watch();
+  Future<List<LeaveRecord>> leaveRecordsOnce() => select(leaveRecords).get();
 }

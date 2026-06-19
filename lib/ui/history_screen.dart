@@ -6,6 +6,7 @@ import '../domain/models.dart';
 import '../domain/work_logic.dart';
 import '../state/providers.dart';
 import 'theme.dart';
+import 'widgets/leave_editor.dart';
 import 'widgets/mode_chip.dart';
 import 'widgets/session_editor.dart';
 
@@ -105,8 +106,8 @@ class _DaysTabState extends ConsumerState<_DaysTab> {
   @override
   Widget build(BuildContext context) {
     final sessions = ref.watch(allSessionsProvider).value ?? const [];
-    final leaves = ref.watch(allLeavesProvider).value ?? const [];
-    if (sessions.isEmpty && leaves.isEmpty) {
+    final leaveDays = ref.watch(leaveDaysMapProvider);
+    if (sessions.isEmpty && leaveDays.isEmpty) {
       return const _Empty(Icons.event_busy, 'No work logged yet.');
     }
     return Column(
@@ -133,7 +134,7 @@ class _DaysTabState extends ConsumerState<_DaysTab> {
               ? _CalendarView(
                   month: _month,
                   sessions: sessions,
-                  leaves: leaves,
+                  leaveDays: leaveDays,
                   target: ref.watch(dailyTargetProvider),
                   weekend: ref.watch(weekendProvider),
                   overrides: ref.watch(dayOverridesProvider).value ?? const {},
@@ -218,7 +219,7 @@ class _DaysList extends StatelessWidget {
 class _CalendarView extends StatelessWidget {
   final DateTime month;
   final List<WorkSession> sessions;
-  final List<LeaveEntry> leaves;
+  final Map<String, LeaveType> leaveDays;
   final Duration target;
   final Set<int> weekend;
   final Map<String, String> overrides;
@@ -229,7 +230,7 @@ class _CalendarView extends StatelessWidget {
   const _CalendarView({
     required this.month,
     required this.sessions,
-    required this.leaves,
+    required this.leaveDays,
     required this.target,
     required this.weekend,
     required this.overrides,
@@ -258,11 +259,6 @@ class _CalendarView extends StatelessWidget {
       return m.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
     }
 
-    final leaveDays = {
-      for (final l in leaves)
-        if (yearOf(l.dayKey) == y && monthOf(l.dayKey) == m) l.dayKey
-    };
-
     final daysInMonth = DateTime(y, m + 1, 0).day;
     // Sunday-first grid: Sun(7)->col 0, Mon(1)->col 1 … Sat(6)->col 6.
     final lead = DateTime(y, m, 1).weekday % 7;
@@ -283,7 +279,7 @@ class _CalendarView extends StatelessWidget {
         intensity: intensity,
         hasWork: dur > Duration.zero,
         workColor: mode == null ? null : modeVisual(mode).color,
-        isLeave: leaveDays.contains(key),
+        isLeave: leaveDays.containsKey(key),
         isWeekend: isWeekend(date, weekend),
         dayOverride: overrides[key],
         onTap: () => onDayTap(date),
@@ -524,85 +520,124 @@ class _LeavesTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final scheme = Theme.of(context).colorScheme;
-    final leaves = ref.watch(allLeavesProvider).value ?? const [];
-    final g = ref.watch(genderProvider);
+    final records = ref.watch(leaveRecordsProvider).value ?? const [];
+    final gender = ref.watch(genderProvider) ?? Gender.male;
+    final join = ref.watch(joinDateProvider);
     final year = DateTime.now().year;
-    final taken = leaveTakenInYear(leaves, year);
-    final alloc = g == null ? 0 : allocationFor(g);
-    final remaining = alloc - taken;
+    final cats = eligibleLeave(gender);
 
-    return Column(
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
       children: [
-        Container(
-          margin: const EdgeInsets.all(12),
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: scheme.primaryContainer,
-            borderRadius: BorderRadius.circular(20),
+        // Per-category balance cards.
+        for (final c in cats)
+          _LeaveBalanceCard(
+            label: '${c.label} leave',
+            used: leaveUsed(records, c, year),
+            total: leaveEntitlement(c, gender, join, year),
           ),
-          child: Row(
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('$year leave balance',
-                      style: TextStyle(
-                          color: scheme.onPrimaryContainer,
-                          fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 4),
-                  Text('Taken $taken  •  Allocation $alloc',
-                      style: TextStyle(
-                          color: scheme.onPrimaryContainer
-                              .withValues(alpha: 0.75))),
-                ],
-              ),
-              const Spacer(),
-              Column(
-                children: [
-                  Text(_trim(remaining),
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineMedium
-                          ?.copyWith(
-                              color: scheme.onPrimaryContainer,
-                              fontWeight: FontWeight.w800)),
-                  Text('left',
-                      style: TextStyle(color: scheme.onPrimaryContainer)),
-                ],
-              ),
-            ],
+        const SizedBox(height: 8),
+        Center(
+          child: FilledButton.icon(
+            onPressed: () => showLeaveEditor(context),
+            icon: const Icon(Icons.add),
+            label: const Text('Apply for leave'),
           ),
         ),
-        Expanded(
-          child: leaves.isEmpty
-              ? const _Empty(Icons.beach_access, 'No leaves taken.')
-              : ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  children: leaves
-                      .map((l) => Card(
-                            margin: const EdgeInsets.only(bottom: 10),
-                            color: scheme.surfaceContainerHigh,
-                            child: ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: const Color(0xFF9333EA)
-                                    .withValues(alpha: 0.14),
-                                child: const Icon(Icons.beach_access,
-                                    color: Color(0xFF9333EA)),
-                              ),
-                              title: Text(l.dayKey,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600)),
-                              subtitle: Text(l.type.label),
-                              trailing: Text('-${l.type.deduction}',
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF9333EA))),
-                            ),
-                          ))
-                      .toList(),
+        const SizedBox(height: 16),
+        Text('History',
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.w700)),
+        const SizedBox(height: 4),
+        if (records.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: Text('No leave taken yet.')),
+          )
+        else
+          ...records.map((r) => Card(
+                margin: const EdgeInsets.only(top: 8),
+                color: scheme.surfaceContainerHigh,
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor:
+                        const Color(0xFF9333EA).withValues(alpha: 0.14),
+                    child: const Icon(Icons.beach_access,
+                        color: Color(0xFF9333EA)),
+                  ),
+                  title: Text('${r.category.label} • ${_fmtDays(r.daysConsumed)}',
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: Text(r.reason?.isNotEmpty == true
+                      ? '${_range(r.startDate, r.endDate)} — ${r.reason}'
+                      : _range(r.startDate, r.endDate)),
+                  trailing: IconButton(
+                    icon: Icon(Icons.delete_outline,
+                        color: scheme.onSurfaceVariant),
+                    onPressed: () => ref
+                        .read(repositoryProvider)
+                        .deleteLeaveRecord(r.id!),
+                  ),
                 ),
-        ),
+              )),
       ],
+    );
+  }
+}
+
+String _fmtDays(double d) =>
+    d == d.roundToDouble() ? '${d.toInt()}d' : '${d}d';
+
+String _range(DateTime a, DateTime b) {
+  String f(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  return a.difference(b).inDays == 0 ? f(a) : '${f(a)} → ${f(b)}';
+}
+
+class _LeaveBalanceCard extends StatelessWidget {
+  final String label;
+  final double used;
+  final double total;
+  const _LeaveBalanceCard(
+      {required this.label, required this.used, required this.total});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final remaining = (total - used).clamp(0, double.infinity);
+    final frac = total == 0 ? 0.0 : (used / total).clamp(0.0, 1.0);
+    return Card(
+      margin: const EdgeInsets.only(bottom: 10),
+      color: scheme.surfaceContainerHigh,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(label,
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                ),
+                Text('${_trim(remaining.toDouble())} / ${_trim(total)} left',
+                    style: TextStyle(
+                        color: scheme.primary, fontWeight: FontWeight.w700)),
+              ],
+            ),
+            const SizedBox(height: 10),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                value: frac,
+                minHeight: 8,
+                backgroundColor: scheme.surfaceContainerHighest,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

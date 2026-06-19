@@ -33,6 +33,7 @@ class _SessionEditorState extends ConsumerState<_SessionEditor> {
   late TimeOfDay _start;
   TimeOfDay? _end;
   late WorkMode _mode;
+  final _note = TextEditingController();
   String? _error;
 
   bool get _isEdit => widget.existing != null;
@@ -46,6 +47,13 @@ class _SessionEditorState extends ConsumerState<_SessionEditor> {
     _start = TimeOfDay.fromDateTime(e?.clockIn ?? now);
     _end = e?.clockOut == null ? null : TimeOfDay.fromDateTime(e!.clockOut!);
     _mode = e?.mode ?? WorkMode.office;
+    _note.text = e?.note ?? '';
+  }
+
+  @override
+  void dispose() {
+    _note.dispose();
+    super.dispose();
   }
 
   DateTime _compose(TimeOfDay t) =>
@@ -59,11 +67,12 @@ class _SessionEditorState extends ConsumerState<_SessionEditor> {
       return;
     }
     final repo = ref.read(repositoryProvider);
+    final note = _note.text.trim().isEmpty ? null : _note.text.trim();
     if (_isEdit) {
       await repo.updateSession(widget.existing!.id!,
-          clockIn: clockIn, clockOut: clockOut, mode: _mode);
+          clockIn: clockIn, clockOut: clockOut, mode: _mode, note: note);
     } else {
-      await repo.addSession(clockIn, clockOut, _mode);
+      await repo.addSession(clockIn, clockOut, _mode, note: note);
     }
     if (mounted) Navigator.pop(context);
   }
@@ -157,6 +166,14 @@ class _SessionEditorState extends ConsumerState<_SessionEditor> {
                   ),
               ],
               onChanged: (m) => setState(() => _mode = m!),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _note,
+              decoration: const InputDecoration(
+                labelText: 'Note (optional)',
+                border: OutlineInputBorder(),
+              ),
             ),
             if (_error != null) ...[
               const SizedBox(height: 12),

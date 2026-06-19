@@ -6,9 +6,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../domain/enums.dart';
 import '../domain/models.dart';
 import '../domain/work_logic.dart';
+import '../services/notification_service.dart';
 import '../state/providers.dart';
 import 'theme.dart';
 import 'widgets/counter_card.dart';
+import 'widgets/leave_editor.dart';
 import 'widgets/mode_chip.dart';
 import 'widgets/progress_ring.dart';
 import 'widgets/session_editor.dart';
@@ -40,9 +42,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
   Future<void> _toggleClock(List<WorkSession> today) async {
     final repo = ref.read(repositoryProvider);
+    final notif = NotificationService();
     final clockedIn = today.any((s) => s.isOpen);
     if (clockedIn) {
       await repo.clockOut();
+      await notif.clearActiveSession();
+      await notif.status('Clocked out', 'Session saved.');
     } else {
       final mode = ref.read(selectedModeProvider);
       if (mode == WorkMode.wfh) {
@@ -56,6 +61,52 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
         }
       }
       await repo.clockIn(mode);
+      await notif.showActiveSession(DateTime.now());
+    }
+  }
+
+  /// Prompt to end a session left open too long (forgot to clock out).
+  Future<void> _endOverdue(WorkSession s) async {
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ListTile(
+              leading: Icon(Icons.warning_amber, color: Color(0xFFEA580C)),
+              title: Text('Still clocked in?'),
+              subtitle: Text(
+                  'This session has been running over 16 hours. End it now?'),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Keep running'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Clock out'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (ok == true) {
+      await ref.read(repositoryProvider).clockOut();
+      await NotificationService().clearActiveSession();
     }
   }
 
@@ -79,8 +130,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.beach_access),
-              title: const Text('Log leave'),
-              subtitle: const Text('Half or full day'),
+              title: const Text('Apply for leave'),
+              subtitle: const Text('Casual, sick, etc. — by date range'),
               onTap: () => Navigator.pop(sheetContext, 'leave'),
             ),
             const SizedBox(height: 8),
@@ -92,34 +143,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     if (action == 'session') {
       await showSessionEditor(context);
     } else if (action == 'leave') {
-      await _logLeave();
-    }
-  }
-
-  Future<void> _logLeave() async {
-    final type = await showModalBottomSheet<LeaveType>(
-      context: context,
-      showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const ListTile(title: Text('Log leave for today')),
-            for (final t in LeaveType.values)
-              ListTile(
-                leading: const Icon(Icons.beach_access),
-                title: Text(t.label),
-                subtitle: Text('Deducts ${t.deduction} day'),
-                onTap: () => Navigator.pop(sheetContext, t),
-              ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-    if (type != null) {
-      await ref.read(repositoryProvider).logLeave(type, DateTime.now());
-      if (mounted) _snack('${type.label} leave logged.');
+      await showLeaveEditor(context);
     }
   }
 
@@ -131,7 +155,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final activeSince = clockedIn ? openToday.first.clockIn : null;
     final total = totalForDay(today);
     final wfh = ref.watch(wfhStatusProvider);
-    final holidays = ref.watch(holidayRemainingProvider);
+    final leaveLeft = ref.watch(totalLeaveRemainingProvider);
     final selectedMode = ref.watch(selectedModeProvider);
     final dailyTarget = ref.watch(dailyTargetProvider);
     final name = ref.watch(displayNameProvider);
@@ -158,7 +182,34 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             target: dailyTarget,
             clockedIn: clockedIn,
             activeSince: activeSince,
+            breakEven: breakEvenTime(total, dailyTarget, clockedIn, DateTime.now()),
           ),
+          if (clockedIn && isOverdue(openToday.first, DateTime.now())) ...[
+            const SizedBox(height: 12),
+            Material(
+              color: const Color(0xFFEA580C).withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(14),
+              child: InkWell(
+                onTap: () => _endOverdue(openToday.first),
+                borderRadius: BorderRadius.circular(14),
+                child: const Padding(
+                  padding: EdgeInsets.all(14),
+                  child: Row(
+                    children: [
+                      Icon(Icons.warning_amber, color: Color(0xFFEA580C)),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                            'Clocked in over 16h — did you forget to clock out?',
+                            style: TextStyle(fontWeight: FontWeight.w600)),
+                      ),
+                      Icon(Icons.chevron_right, color: Color(0xFFEA580C)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
 
           // Work mode selector (applies to the next sign-in). Defaults to Office.
@@ -251,9 +302,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: CounterCard(
-                  title: 'Holidays',
-                  value: holidays == null ? '–' : _trim(holidays),
-                  subtitle: 'remaining',
+                  title: 'Leave',
+                  value: _trim(leaveLeft),
+                  subtitle: 'days left',
                   color: const Color(0xFFEA580C),
                   icon: Icons.beach_access,
                 ),
@@ -293,6 +344,7 @@ class _TimerHero extends StatelessWidget {
   final Duration target;
   final bool clockedIn;
   final DateTime? activeSince;
+  final DateTime? breakEven;
 
   const _TimerHero({
     required this.date,
@@ -300,6 +352,7 @@ class _TimerHero extends StatelessWidget {
     required this.target,
     required this.clockedIn,
     this.activeSince,
+    this.breakEven,
   });
 
   static const _grad = [Color(0xFF4F46E5), Color(0xFF7C3AED)]; // indigo→violet
@@ -314,8 +367,8 @@ class _TimerHero extends StatelessWidget {
 
     final String caption = met
         ? '🎉  Daily target met'
-        : (clockedIn
-            ? '${formatDuration(remaining)} to go'
+        : (clockedIn && breakEven != null
+            ? 'Leave by ${formatTime(breakEven!)} • ${formatDuration(remaining)} to go'
             : '$pct% of ${formatDuration(target)}');
 
     return Container(

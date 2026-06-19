@@ -36,16 +36,29 @@ final themeModeProvider = Provider<ThemeMode>((ref) {
   };
 });
 
-// Required average per worked day (defaults to 8h 30m).
+// Effective per-day target (office hours, or Ramadan hours when enabled).
 final dailyTargetProvider = Provider<Duration>((ref) {
-  final mins = ref.watch(settingsProvider).value?.dailyTargetMinutes ?? 510;
-  return Duration(minutes: mins);
+  final s = ref.watch(settingsProvider).value;
+  if (s == null) return const Duration(hours: 8, minutes: 30);
+  return effectiveTarget(
+    officeStartMin: s.officeStartMin,
+    officeEndMin: s.officeEndMin,
+    ramadanEnabled: s.ramadanEnabled,
+    ramadanStartMin: s.ramadanStartMin,
+    ramadanEndMin: s.ramadanEndMin,
+  );
 });
 
 final displayNameProvider = Provider<String?>((ref) {
   final n = ref.watch(settingsProvider).value?.displayName;
   return (n == null || n.trim().isEmpty) ? null : n.trim();
 });
+
+final joinDateProvider = Provider<DateTime?>(
+    (ref) => ref.watch(settingsProvider).value?.joinDate);
+
+final biometricLockProvider = Provider<bool>(
+    (ref) => ref.watch(settingsProvider).value?.biometricLock ?? false);
 
 // Weekend weekdays (DateTime weekday numbers), default Fri+Sat.
 final weekendProvider = Provider<Set<int>>((ref) =>
@@ -55,12 +68,6 @@ final weekendProvider = Provider<Set<int>>((ref) =>
 final dayOverridesProvider = StreamProvider<Map<String, String>>(
     (ref) => ref.watch(repositoryProvider).watchDayOverrides());
 
-// Leaves indexed by day for quick lookup.
-final leavesByDayProvider = Provider<Map<String, LeaveType>>((ref) {
-  final leaves = ref.watch(allLeavesProvider).value ?? const [];
-  return {for (final l in leaves) l.dayKey: l.type};
-});
-
 // --- raw data streams ---
 final allSessionsProvider = StreamProvider<List<WorkSession>>(
     (ref) => ref.watch(repositoryProvider).watchAllSessions());
@@ -68,8 +75,28 @@ final allSessionsProvider = StreamProvider<List<WorkSession>>(
 final todaySessionsProvider = StreamProvider<List<WorkSession>>(
     (ref) => ref.watch(repositoryProvider).watchSessionsForDay(dayKey(DateTime.now())));
 
-final allLeavesProvider = StreamProvider<List<LeaveEntry>>(
-    (ref) => ref.watch(repositoryProvider).watchAllLeaves());
+final leaveRecordsProvider = StreamProvider<List<LeaveRecordModel>>(
+    (ref) => ref.watch(repositoryProvider).watchLeaveRecords());
+
+// Day → leave duration map (full/half), expanded from leave records. Used for
+// expected-day reduction and calendar markers.
+final leaveDaysMapProvider = Provider<Map<String, LeaveType>>((ref) {
+  final records = ref.watch(leaveRecordsProvider).value ?? const [];
+  final map = <String, LeaveType>{};
+  for (final r in records) {
+    if (r.duration == LeaveType.half) {
+      map[dayKey(r.startDate)] = LeaveType.half;
+    } else {
+      var d = DateTime(r.startDate.year, r.startDate.month, r.startDate.day);
+      final last = DateTime(r.endDate.year, r.endDate.month, r.endDate.day);
+      while (!d.isAfter(last)) {
+        map[dayKey(d)] = LeaveType.full;
+        d = d.add(const Duration(days: 1));
+      }
+    }
+  }
+  return map;
+});
 
 // --- selected work mode for the NEXT clock-in ---
 final selectedModeProvider =
@@ -97,11 +124,15 @@ final wfhStatusProvider = Provider<WfhStatus>((ref) {
   );
 });
 
-final holidayRemainingProvider = Provider<double?>((ref) {
+// Total leave days remaining across all eligible categories this year.
+final totalLeaveRemainingProvider = Provider<double>((ref) {
   final g = ref.watch(genderProvider);
-  final leaves = ref.watch(allLeavesProvider).value ?? const [];
-  if (g == null) return null;
-  return holidayRemaining(leaves, g, DateTime.now().year);
+  final records = ref.watch(leaveRecordsProvider).value ?? const [];
+  final join = ref.watch(joinDateProvider);
+  if (g == null) return 0;
+  final year = DateTime.now().year;
+  return eligibleLeave(g).fold<double>(
+      0, (sum, c) => sum + leaveRemaining(records, c, g, join, year));
 });
 
 final isClockedInProvider = Provider<bool>((ref) {

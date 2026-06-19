@@ -15,7 +15,22 @@ WorkSession session(String day, int h1, int m1, int? h2, int? m2,
   );
 }
 
-LeaveEntry leave(String day, LeaveType t) => LeaveEntry(dayKey: day, type: t);
+LeaveRecordModel leaveRec(LeaveCategory cat, String start, String end,
+    {LeaveType duration = LeaveType.full, double days = 1}) {
+  DateTime p(String s) {
+    final x = s.split('-').map(int.parse).toList();
+    return DateTime(x[0], x[1], x[2]);
+  }
+
+  return LeaveRecordModel(
+    category: cat,
+    startDate: p(start),
+    endDate: p(end),
+    duration: duration,
+    daysConsumed: days,
+    appliedOn: p(start),
+  );
+}
 
 void main() {
   group('totalForDay', () {
@@ -69,22 +84,81 @@ void main() {
     });
   });
 
-  group('holidayRemaining', () {
-    test('female start 30; one full + one half => 28.5', () {
-      final leaves = [
-        leave('2026-03-01', LeaveType.full),
-        leave('2026-04-01', LeaveType.half),
+  group('typed leave entitlements', () {
+    test('full entitlement when joined before this year', () {
+      expect(leaveEntitlement(LeaveCategory.casual, Gender.male,
+          DateTime(2024, 1, 1), 2026), 15);
+      expect(leaveEntitlement(LeaveCategory.sick, Gender.male, null, 2026), 10);
+    });
+
+    test('maternity is female-only', () {
+      expect(leaveEntitlement(LeaveCategory.maternity, Gender.male, null, 2026),
+          0);
+      expect(leaveEntitlement(LeaveCategory.maternity, Gender.female, null, 2026),
+          112);
+      expect(eligibleLeave(Gender.male).contains(LeaveCategory.maternity),
+          isFalse);
+    });
+
+    test('pro-rata when joining mid-year', () {
+      // Joined Jul 10, 2026 → day<=15 so July counts → Jul..Dec = 6 months.
+      // Casual 15/12 * 6 = 7.5 → rounds to 8.
+      expect(
+          leaveEntitlement(
+              LeaveCategory.casual, Gender.male, DateTime(2026, 7, 10), 2026),
+          8);
+      // Joined Jul 20 → after 15th → Aug..Dec = 5 months → 15/12*5=6.25 → 6.
+      expect(
+          leaveEntitlement(
+              LeaveCategory.casual, Gender.male, DateTime(2026, 7, 20), 2026),
+          6);
+    });
+
+    test('used and remaining', () {
+      final records = [
+        leaveRec(LeaveCategory.casual, '2026-03-02', '2026-03-04', days: 3),
+        leaveRec(LeaveCategory.sick, '2026-05-01', '2026-05-01', days: 1),
       ];
-      expect(holidayRemaining(leaves, Gender.female, 2026), 28.5);
+      expect(leaveUsed(records, LeaveCategory.casual, 2026), 3);
+      expect(
+          leaveRemaining(records, LeaveCategory.casual, Gender.male, null, 2026),
+          12);
+    });
+  });
+
+  group('effective target & break-even', () {
+    test('target derives from office hours; ramadan overrides', () {
+      expect(
+          effectiveTarget(
+              officeStartMin: 570,
+              officeEndMin: 1080,
+              ramadanEnabled: false,
+              ramadanStartMin: 570,
+              ramadanEndMin: 930),
+          const Duration(hours: 8, minutes: 30));
+      expect(
+          effectiveTarget(
+              officeStartMin: 570,
+              officeEndMin: 1080,
+              ramadanEnabled: true,
+              ramadanStartMin: 570,
+              ramadanEndMin: 930),
+          const Duration(hours: 6));
     });
 
-    test('male starts at 25', () {
-      expect(holidayRemaining([], Gender.male, 2026), 25);
-    });
-
-    test('prior-year leaves do not reduce current-year balance', () {
-      final leaves = [leave('2025-12-31', LeaveType.full)];
-      expect(holidayRemaining(leaves, Gender.male, 2026), 25);
+    test('break-even is now + remaining while working', () {
+      final now = DateTime(2026, 6, 1, 14, 0);
+      final be = breakEvenTime(const Duration(hours: 3),
+          const Duration(hours: 8, minutes: 30), true, now);
+      expect(be, DateTime(2026, 6, 1, 19, 30)); // 14:00 + 5h30m
+      expect(
+          breakEvenTime(const Duration(hours: 9),
+              const Duration(hours: 8, minutes: 30), true, now),
+          isNull); // already met
+      expect(
+          breakEvenTime(const Duration(hours: 3),
+              const Duration(hours: 8, minutes: 30), false, now),
+          isNull); // not clocked in
     });
   });
 
