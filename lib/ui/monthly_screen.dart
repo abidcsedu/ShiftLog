@@ -51,7 +51,10 @@ class _MonthlyScreenState extends ConsumerState<MonthlyScreen> {
       leaves: ref.watch(leaveDaysMapProvider),
     );
 
-    final ok = stats.meetsTarget;
+    // This hero reflects the AVERAGE per worked day, so judge it against the
+    // required daily average — not the cumulative month total (which is
+    // naturally short until every working day has been logged).
+    final ok = stats.daysWorked > 0 && stats.average >= stats.requiredAvg;
     final accent = stats.daysWorked == 0
         ? Colors.grey
         : (ok ? Colors.green.shade600 : Colors.red.shade600);
