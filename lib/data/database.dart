@@ -51,6 +51,7 @@ class TimeLogs extends Table {
   DateTimeColumn get clockOut => dateTime().nullable()(); // null = active
   TextColumn get workMode => text()(); // 'office' | 'wfh' | 'outside'
   TextColumn get note => text().nullable()();
+  TextColumn get project => text().nullable()(); // project / client / ticket
 }
 
 // One row per leave taken.
@@ -111,7 +112,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'shiftlog'));
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -140,6 +141,9 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 6) {
             await m.createTable(notes);
+          }
+          if (from < 7) {
+            await m.addColumn(timeLogs, timeLogs.project);
           }
         },
       );

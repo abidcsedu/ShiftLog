@@ -60,7 +60,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           return;
         }
       }
-      await repo.clockIn(mode);
+      await repo.clockIn(mode, project: ref.read(selectedProjectProvider));
       await notif.showActiveSession(DateTime.now());
     }
   }
@@ -113,6 +113,86 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   void _snack(String msg) => ScaffoldMessenger.of(context)
       .showSnackBar(SnackBar(content: Text(msg)));
 
+  /// Choose the project/ticket for the next sign-in (existing or new).
+  Future<void> _pickProject() async {
+    final known = ref.read(projectsProvider);
+    final controller = TextEditingController(
+        text: ref.read(selectedProjectProvider) ?? '');
+    final result = await showModalBottomSheet<String?>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Project / ticket',
+                    style: Theme.of(ctx)
+                        .textTheme
+                        .titleLarge
+                        ?.copyWith(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  decoration: const InputDecoration(
+                    hintText: 'e.g. Brritto, JIRA-123',
+                    prefixIcon: Icon(Icons.folder_outlined),
+                    border: OutlineInputBorder(),
+                  ),
+                  onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
+                ),
+                if (known.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final p in known)
+                        ActionChip(
+                          label: Text(p),
+                          onPressed: () => Navigator.pop(ctx, p),
+                        ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(ctx, ''),
+                        child: const Text('Clear'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton(
+                        onPressed: () =>
+                            Navigator.pop(ctx, controller.text.trim()),
+                        child: const Text('Set'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    if (result != null) {
+      ref.read(selectedProjectProvider.notifier).state =
+          result.isEmpty ? null : result;
+    }
+  }
+
   /// The "+" menu: choose to add a work session or log a leave.
   Future<void> _showAddMenu() async {
     final action = await showModalBottomSheet<String>(
@@ -157,6 +237,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final wfh = ref.watch(wfhStatusProvider);
     final leaveLeft = ref.watch(totalLeaveRemainingProvider);
     final selectedMode = ref.watch(selectedModeProvider);
+    final selectedProject = ref.watch(selectedProjectProvider);
     final dailyTarget = ref.watch(dailyTargetProvider);
     final name = ref.watch(displayNameProvider);
 
@@ -250,6 +331,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       : (m) =>
                           ref.read(selectedModeProvider.notifier).state = m!,
                 ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Project selector (applies to the next sign-in; optional).
+          Row(
+            children: [
+              Text('Project', style: Theme.of(context).textTheme.titleSmall),
+              const Spacer(),
+              ActionChip(
+                avatar: Icon(Icons.folder_outlined,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
+                label: Text(selectedProject ?? 'None'),
+                onPressed: clockedIn ? null : _pickProject,
               ),
             ],
           ),
@@ -537,9 +634,35 @@ class _SessionTile extends StatelessWidget {
               ModeChip(session.mode),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  '${formatTime(session.clockIn)}  →  ${end == null ? 'now' : formatTime(end)}',
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${formatTime(session.clockIn)}  →  ${end == null ? 'now' : formatTime(end)}',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    if (session.project != null &&
+                        session.project!.trim().isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.folder_outlined,
+                              size: 13, color: scheme.onSurfaceVariant),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(session.project!.trim(),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    color: scheme.onSurfaceVariant,
+                                    fontSize: 12)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
                 ),
               ),
               Text(formatDuration(dur),

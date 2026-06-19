@@ -1062,6 +1062,17 @@ class $TimeLogsTable extends TimeLogs with TableInfo<$TimeLogsTable, TimeLog> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _projectMeta = const VerificationMeta(
+    'project',
+  );
+  @override
+  late final GeneratedColumn<String> project = GeneratedColumn<String>(
+    'project',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -1070,6 +1081,7 @@ class $TimeLogsTable extends TimeLogs with TableInfo<$TimeLogsTable, TimeLog> {
     clockOut,
     workMode,
     note,
+    project,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1122,6 +1134,12 @@ class $TimeLogsTable extends TimeLogs with TableInfo<$TimeLogsTable, TimeLog> {
         note.isAcceptableOrUnknown(data['note']!, _noteMeta),
       );
     }
+    if (data.containsKey('project')) {
+      context.handle(
+        _projectMeta,
+        project.isAcceptableOrUnknown(data['project']!, _projectMeta),
+      );
+    }
     return context;
   }
 
@@ -1155,6 +1173,10 @@ class $TimeLogsTable extends TimeLogs with TableInfo<$TimeLogsTable, TimeLog> {
         DriftSqlType.string,
         data['${effectivePrefix}note'],
       ),
+      project: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}project'],
+      ),
     );
   }
 
@@ -1171,6 +1193,7 @@ class TimeLog extends DataClass implements Insertable<TimeLog> {
   final DateTime? clockOut;
   final String workMode;
   final String? note;
+  final String? project;
   const TimeLog({
     required this.id,
     required this.dayKey,
@@ -1178,6 +1201,7 @@ class TimeLog extends DataClass implements Insertable<TimeLog> {
     this.clockOut,
     required this.workMode,
     this.note,
+    this.project,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1192,6 +1216,9 @@ class TimeLog extends DataClass implements Insertable<TimeLog> {
     if (!nullToAbsent || note != null) {
       map['note'] = Variable<String>(note);
     }
+    if (!nullToAbsent || project != null) {
+      map['project'] = Variable<String>(project);
+    }
     return map;
   }
 
@@ -1205,6 +1232,9 @@ class TimeLog extends DataClass implements Insertable<TimeLog> {
           : Value(clockOut),
       workMode: Value(workMode),
       note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      project: project == null && nullToAbsent
+          ? const Value.absent()
+          : Value(project),
     );
   }
 
@@ -1220,6 +1250,7 @@ class TimeLog extends DataClass implements Insertable<TimeLog> {
       clockOut: serializer.fromJson<DateTime?>(json['clockOut']),
       workMode: serializer.fromJson<String>(json['workMode']),
       note: serializer.fromJson<String?>(json['note']),
+      project: serializer.fromJson<String?>(json['project']),
     );
   }
   @override
@@ -1232,6 +1263,7 @@ class TimeLog extends DataClass implements Insertable<TimeLog> {
       'clockOut': serializer.toJson<DateTime?>(clockOut),
       'workMode': serializer.toJson<String>(workMode),
       'note': serializer.toJson<String?>(note),
+      'project': serializer.toJson<String?>(project),
     };
   }
 
@@ -1242,6 +1274,7 @@ class TimeLog extends DataClass implements Insertable<TimeLog> {
     Value<DateTime?> clockOut = const Value.absent(),
     String? workMode,
     Value<String?> note = const Value.absent(),
+    Value<String?> project = const Value.absent(),
   }) => TimeLog(
     id: id ?? this.id,
     dayKey: dayKey ?? this.dayKey,
@@ -1249,6 +1282,7 @@ class TimeLog extends DataClass implements Insertable<TimeLog> {
     clockOut: clockOut.present ? clockOut.value : this.clockOut,
     workMode: workMode ?? this.workMode,
     note: note.present ? note.value : this.note,
+    project: project.present ? project.value : this.project,
   );
   TimeLog copyWithCompanion(TimeLogsCompanion data) {
     return TimeLog(
@@ -1258,6 +1292,7 @@ class TimeLog extends DataClass implements Insertable<TimeLog> {
       clockOut: data.clockOut.present ? data.clockOut.value : this.clockOut,
       workMode: data.workMode.present ? data.workMode.value : this.workMode,
       note: data.note.present ? data.note.value : this.note,
+      project: data.project.present ? data.project.value : this.project,
     );
   }
 
@@ -1269,14 +1304,15 @@ class TimeLog extends DataClass implements Insertable<TimeLog> {
           ..write('clockIn: $clockIn, ')
           ..write('clockOut: $clockOut, ')
           ..write('workMode: $workMode, ')
-          ..write('note: $note')
+          ..write('note: $note, ')
+          ..write('project: $project')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode =>
-      Object.hash(id, dayKey, clockIn, clockOut, workMode, note);
+      Object.hash(id, dayKey, clockIn, clockOut, workMode, note, project);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1286,7 +1322,8 @@ class TimeLog extends DataClass implements Insertable<TimeLog> {
           other.clockIn == this.clockIn &&
           other.clockOut == this.clockOut &&
           other.workMode == this.workMode &&
-          other.note == this.note);
+          other.note == this.note &&
+          other.project == this.project);
 }
 
 class TimeLogsCompanion extends UpdateCompanion<TimeLog> {
@@ -1296,6 +1333,7 @@ class TimeLogsCompanion extends UpdateCompanion<TimeLog> {
   final Value<DateTime?> clockOut;
   final Value<String> workMode;
   final Value<String?> note;
+  final Value<String?> project;
   const TimeLogsCompanion({
     this.id = const Value.absent(),
     this.dayKey = const Value.absent(),
@@ -1303,6 +1341,7 @@ class TimeLogsCompanion extends UpdateCompanion<TimeLog> {
     this.clockOut = const Value.absent(),
     this.workMode = const Value.absent(),
     this.note = const Value.absent(),
+    this.project = const Value.absent(),
   });
   TimeLogsCompanion.insert({
     this.id = const Value.absent(),
@@ -1311,6 +1350,7 @@ class TimeLogsCompanion extends UpdateCompanion<TimeLog> {
     this.clockOut = const Value.absent(),
     required String workMode,
     this.note = const Value.absent(),
+    this.project = const Value.absent(),
   }) : dayKey = Value(dayKey),
        clockIn = Value(clockIn),
        workMode = Value(workMode);
@@ -1321,6 +1361,7 @@ class TimeLogsCompanion extends UpdateCompanion<TimeLog> {
     Expression<DateTime>? clockOut,
     Expression<String>? workMode,
     Expression<String>? note,
+    Expression<String>? project,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1329,6 +1370,7 @@ class TimeLogsCompanion extends UpdateCompanion<TimeLog> {
       if (clockOut != null) 'clock_out': clockOut,
       if (workMode != null) 'work_mode': workMode,
       if (note != null) 'note': note,
+      if (project != null) 'project': project,
     });
   }
 
@@ -1339,6 +1381,7 @@ class TimeLogsCompanion extends UpdateCompanion<TimeLog> {
     Value<DateTime?>? clockOut,
     Value<String>? workMode,
     Value<String?>? note,
+    Value<String?>? project,
   }) {
     return TimeLogsCompanion(
       id: id ?? this.id,
@@ -1347,6 +1390,7 @@ class TimeLogsCompanion extends UpdateCompanion<TimeLog> {
       clockOut: clockOut ?? this.clockOut,
       workMode: workMode ?? this.workMode,
       note: note ?? this.note,
+      project: project ?? this.project,
     );
   }
 
@@ -1371,6 +1415,9 @@ class TimeLogsCompanion extends UpdateCompanion<TimeLog> {
     if (note.present) {
       map['note'] = Variable<String>(note.value);
     }
+    if (project.present) {
+      map['project'] = Variable<String>(project.value);
+    }
     return map;
   }
 
@@ -1382,7 +1429,8 @@ class TimeLogsCompanion extends UpdateCompanion<TimeLog> {
           ..write('clockIn: $clockIn, ')
           ..write('clockOut: $clockOut, ')
           ..write('workMode: $workMode, ')
-          ..write('note: $note')
+          ..write('note: $note, ')
+          ..write('project: $project')
           ..write(')'))
         .toString();
   }
@@ -3402,6 +3450,7 @@ typedef $$TimeLogsTableCreateCompanionBuilder =
       Value<DateTime?> clockOut,
       required String workMode,
       Value<String?> note,
+      Value<String?> project,
     });
 typedef $$TimeLogsTableUpdateCompanionBuilder =
     TimeLogsCompanion Function({
@@ -3411,6 +3460,7 @@ typedef $$TimeLogsTableUpdateCompanionBuilder =
       Value<DateTime?> clockOut,
       Value<String> workMode,
       Value<String?> note,
+      Value<String?> project,
     });
 
 class $$TimeLogsTableFilterComposer
@@ -3449,6 +3499,11 @@ class $$TimeLogsTableFilterComposer
 
   ColumnFilters<String> get note => $composableBuilder(
     column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get project => $composableBuilder(
+    column: $table.project,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -3491,6 +3546,11 @@ class $$TimeLogsTableOrderingComposer
     column: $table.note,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get project => $composableBuilder(
+    column: $table.project,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$TimeLogsTableAnnotationComposer
@@ -3519,6 +3579,9 @@ class $$TimeLogsTableAnnotationComposer
 
   GeneratedColumn<String> get note =>
       $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<String> get project =>
+      $composableBuilder(column: $table.project, builder: (column) => column);
 }
 
 class $$TimeLogsTableTableManager
@@ -3555,6 +3618,7 @@ class $$TimeLogsTableTableManager
                 Value<DateTime?> clockOut = const Value.absent(),
                 Value<String> workMode = const Value.absent(),
                 Value<String?> note = const Value.absent(),
+                Value<String?> project = const Value.absent(),
               }) => TimeLogsCompanion(
                 id: id,
                 dayKey: dayKey,
@@ -3562,6 +3626,7 @@ class $$TimeLogsTableTableManager
                 clockOut: clockOut,
                 workMode: workMode,
                 note: note,
+                project: project,
               ),
           createCompanionCallback:
               ({
@@ -3571,6 +3636,7 @@ class $$TimeLogsTableTableManager
                 Value<DateTime?> clockOut = const Value.absent(),
                 required String workMode,
                 Value<String?> note = const Value.absent(),
+                Value<String?> project = const Value.absent(),
               }) => TimeLogsCompanion.insert(
                 id: id,
                 dayKey: dayKey,
@@ -3578,6 +3644,7 @@ class $$TimeLogsTableTableManager
                 clockOut: clockOut,
                 workMode: workMode,
                 note: note,
+                project: project,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

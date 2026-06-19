@@ -172,6 +172,35 @@ Duration balance(Duration worked, Duration target) => worked - target;
 bool isOverdue(WorkSession s, DateTime now, {int hours = 16}) =>
     s.isOpen && now.difference(s.clockIn).inHours >= hours;
 
+const String untaggedProject = 'Untagged';
+
+/// Total worked time per project for a month (open sessions count to [now]).
+Map<String, Duration> hoursByProject(
+    List<WorkSession> logs, int year, int month,
+    {DateTime? now}) {
+  final ref = now ?? DateTime.now();
+  final map = <String, Duration>{};
+  for (final s in logs) {
+    if (yearOf(s.dayKey) != year || monthOf(s.dayKey) != month) continue;
+    final key = (s.project == null || s.project!.trim().isEmpty)
+        ? untaggedProject
+        : s.project!.trim();
+    final end = s.clockOut ?? ref;
+    map[key] = (map[key] ?? Duration.zero) + end.difference(s.clockIn);
+  }
+  return map;
+}
+
+/// Distinct project names that appear in the logs (most recent first-ish).
+List<String> knownProjects(List<WorkSession> logs) {
+  final set = <String>{};
+  for (final s in logs) {
+    final p = s.project?.trim();
+    if (p != null && p.isNotEmpty) set.add(p);
+  }
+  return set.toList()..sort();
+}
+
 // --- D. Monthly working-hours target (8h 30m average per worked day) ---
 
 /// Required average per worked day, accumulated month-wise.

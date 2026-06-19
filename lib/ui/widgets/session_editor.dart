@@ -34,6 +34,8 @@ class _SessionEditorState extends ConsumerState<_SessionEditor> {
   TimeOfDay? _end;
   late WorkMode _mode;
   final _note = TextEditingController();
+  final _project = TextEditingController();
+  final _projectFocus = FocusNode();
   String? _error;
 
   bool get _isEdit => widget.existing != null;
@@ -48,11 +50,14 @@ class _SessionEditorState extends ConsumerState<_SessionEditor> {
     _end = e?.clockOut == null ? null : TimeOfDay.fromDateTime(e!.clockOut!);
     _mode = e?.mode ?? WorkMode.office;
     _note.text = e?.note ?? '';
+    _project.text = e?.project ?? '';
   }
 
   @override
   void dispose() {
     _note.dispose();
+    _project.dispose();
+    _projectFocus.dispose();
     super.dispose();
   }
 
@@ -68,11 +73,18 @@ class _SessionEditorState extends ConsumerState<_SessionEditor> {
     }
     final repo = ref.read(repositoryProvider);
     final note = _note.text.trim().isEmpty ? null : _note.text.trim();
+    final project =
+        _project.text.trim().isEmpty ? null : _project.text.trim();
     if (_isEdit) {
       await repo.updateSession(widget.existing!.id!,
-          clockIn: clockIn, clockOut: clockOut, mode: _mode, note: note);
+          clockIn: clockIn,
+          clockOut: clockOut,
+          mode: _mode,
+          note: note,
+          project: project);
     } else {
-      await repo.addSession(clockIn, clockOut, _mode, note: note);
+      await repo.addSession(clockIn, clockOut, _mode,
+          note: note, project: project);
     }
     if (mounted) Navigator.pop(context);
   }
@@ -166,6 +178,49 @@ class _SessionEditorState extends ConsumerState<_SessionEditor> {
                   ),
               ],
               onChanged: (m) => setState(() => _mode = m!),
+            ),
+            const SizedBox(height: 12),
+            RawAutocomplete<String>(
+              textEditingController: _project,
+              focusNode: _projectFocus,
+              optionsBuilder: (value) {
+                final all = ref.read(projectsProvider);
+                final q = value.text.trim().toLowerCase();
+                if (q.isEmpty) return all;
+                return all.where((p) => p.toLowerCase().contains(q));
+              },
+              fieldViewBuilder:
+                  (context, controller, focusNode, onSubmit) => TextField(
+                controller: controller,
+                focusNode: focusNode,
+                decoration: const InputDecoration(
+                  labelText: 'Project / ticket (optional)',
+                  prefixIcon: Icon(Icons.folder_outlined),
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              optionsViewBuilder: (context, onSelected, options) => Align(
+                alignment: Alignment.topLeft,
+                child: Material(
+                  elevation: 4,
+                  borderRadius: BorderRadius.circular(12),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 200),
+                    child: ListView(
+                      shrinkWrap: true,
+                      padding: EdgeInsets.zero,
+                      children: [
+                        for (final o in options)
+                          ListTile(
+                            dense: true,
+                            title: Text(o),
+                            onTap: () => onSelected(o),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
             const SizedBox(height: 12),
             TextField(

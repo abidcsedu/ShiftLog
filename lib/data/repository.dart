@@ -21,6 +21,7 @@ class Repository {
         clockOut: r.clockOut,
         mode: WorkModeX.fromDb(r.workMode),
         note: r.note,
+        project: r.project,
       );
 
   LeaveRecordModel _toLeaveRecord(LeaveRecord r) => LeaveRecordModel(
@@ -134,13 +135,14 @@ class Repository {
       db.watchLeaveRecords().map((rows) => rows.map(_toLeaveRecord).toList());
 
   // --- clock in / out ---
-  Future<void> clockIn(WorkMode mode, {DateTime? now}) async {
+  Future<void> clockIn(WorkMode mode, {DateTime? now, String? project}) async {
     final ts = now ?? DateTime.now();
     await db.into(db.timeLogs).insert(
           TimeLogsCompanion.insert(
             dayKey: dayKey(ts),
             clockIn: ts,
             workMode: mode.db,
+            project: Value(project),
           ),
         );
   }
@@ -167,6 +169,7 @@ class Repository {
     DateTime? clockOut,
     WorkMode mode, {
     String? note,
+    String? project,
   }) async {
     await db.into(db.timeLogs).insert(
           TimeLogsCompanion.insert(
@@ -175,6 +178,7 @@ class Repository {
             clockOut: Value(clockOut),
             workMode: mode.db,
             note: Value(note),
+            project: Value(project),
           ),
         );
   }
@@ -186,6 +190,7 @@ class Repository {
     DateTime? clockOut,
     required WorkMode mode,
     String? note,
+    String? project,
   }) async {
     await (db.update(db.timeLogs)..where((t) => t.id.equals(id))).write(
       TimeLogsCompanion(
@@ -194,6 +199,7 @@ class Repository {
         clockOut: Value(clockOut),
         workMode: Value(mode.db),
         note: Value(note),
+        project: Value(project),
       ),
     );
   }
@@ -306,6 +312,7 @@ class Repository {
             'clockOut': r.clockOut?.toIso8601String(),
             'workMode': r.workMode,
             'note': r.note,
+            'project': r.project,
           },
       ],
       'leaveRecords': [
@@ -398,6 +405,7 @@ class Repository {
                     : DateTime.parse(j['clockOut'] as String)),
                 workMode: j['workMode'] as String,
                 note: Value(j['note'] as String?),
+                project: Value(j['project'] as String?),
               ),
             );
       }

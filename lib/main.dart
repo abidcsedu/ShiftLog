@@ -23,7 +23,7 @@ class ShiftLogApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     // Keep the home-screen widget in sync with today's sessions.
-    ref.listen(todaySessionsProvider, (_, __) {
+    ref.listen(todaySessionsProvider, (_, _) {
       WidgetService.sync(ref.read(repositoryProvider));
     });
     return MaterialApp.router(
