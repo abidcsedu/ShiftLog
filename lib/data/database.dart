@@ -38,6 +38,13 @@ class UserSettings extends Table {
   // Require device biometric/PIN to open the app.
   BoolColumn get biometricLock =>
       boolean().withDefault(const Constant(false))();
+  // Scheduled reminders.
+  BoolColumn get remindClockIn =>
+      boolean().withDefault(const Constant(false))();
+  BoolColumn get remindClockOut =>
+      boolean().withDefault(const Constant(false))();
+  BoolColumn get remindWeekly =>
+      boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -112,7 +119,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'shiftlog'));
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -144,6 +151,11 @@ class AppDatabase extends _$AppDatabase {
           }
           if (from < 7) {
             await m.addColumn(timeLogs, timeLogs.project);
+          }
+          if (from < 8) {
+            await m.addColumn(userSettings, userSettings.remindClockIn);
+            await m.addColumn(userSettings, userSettings.remindClockOut);
+            await m.addColumn(userSettings, userSettings.remindWeekly);
           }
         },
       );

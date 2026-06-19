@@ -1,5 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:timezone/data/latest_all.dart' as tzdata;
+import 'package:timezone/timezone.dart' as tz;
 
 /// Thin wrapper over flutter_local_notifications. All calls are guarded so a
 /// platform/permission failure never crashes the app.
@@ -10,8 +13,14 @@ class NotificationService {
 
   final _plugin = FlutterLocalNotificationsPlugin();
   bool _ready = false;
+  bool _tzReady = false;
 
   static const _activeId = 1;
+  // Stable IDs for the scheduled reminders.
+  static const _remindClockInId = 10;
+  static const _remindClockOutId = 11;
+  static const _remindWeeklyId = 12;
+
   static const _activeChannel = AndroidNotificationChannel(
     'active_session',
     'Active session',
@@ -24,6 +33,12 @@ class NotificationService {
     description: 'Clock-in / clock-out confirmations',
     importance: Importance.defaultImportance,
   );
+  static const _reminderChannel = AndroidNotificationChannel(
+    'reminders',
+    'Reminders',
+    description: 'Scheduled clock-in / clock-out / weekly reminders',
+    importance: Importance.high,
+  );
 
   Future<void> init() async {
     try {
@@ -35,11 +50,111 @@ class NotificationService {
           AndroidFlutterLocalNotificationsPlugin>();
       await android?.createNotificationChannel(_activeChannel);
       await android?.createNotificationChannel(_statusChannel);
+      await android?.createNotificationChannel(_reminderChannel);
       await android?.requestNotificationsPermission();
+      await _initTimezone();
       _ready = true;
     } catch (e) {
       debugPrint('NotificationService init failed: $e');
     }
+  }
+
+  Future<void> _initTimezone() async {
+    try {
+      tzdata.initializeTimeZones();
+      final info = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(info.identifier));
+      _tzReady = true;
+    } catch (e) {
+      debugPrint('timezone init failed: $e');
+    }
+  }
+
+  /// Next occurrence of [hour]:[minute] in local time (today if still ahead,
+  /// otherwise tomorrow).
+  tz.TZDateTime _nextDaily(int hour, int minute) {
+    final now = tz.TZDateTime.now(tz.local);
+    var when = tz.TZDateTime(
+        tz.local, now.year, now.month, now.day, hour, minute);
+    if (!when.isAfter(now)) when = when.add(const Duration(days: 1));
+    return when;
+  }
+
+  /// Next occurrence of [weekday] (Mon=1..Sun=7) at [hour]:[minute].
+  tz.TZDateTime _nextWeekly(int weekday, int hour, int minute) {
+    var when = _nextDaily(hour, minute);
+    while (when.weekday != weekday) {
+      when = when.add(const Duration(days: 1));
+    }
+    return when;
+  }
+
+  NotificationDetails get _reminderDetails => const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'reminders',
+          'Reminders',
+          importance: Importance.high,
+          priority: Priority.high,
+        ),
+      );
+
+  /// Reconcile the three scheduled reminders against the current settings.
+  /// [startMin]/[endMin] are office start/end as minutes-from-midnight.
+  Future<void> syncReminders({
+    required bool clockIn,
+    required bool clockOut,
+    required bool weekly,
+    required int startMin,
+    required int endMin,
+  }) async {
+    if (!_ready || !_tzReady) return;
+    await _cancel(_remindClockInId);
+    await _cancel(_remindClockOutId);
+    await _cancel(_remindWeeklyId);
+    try {
+      if (clockIn) {
+        await _scheduleDaily(_remindClockInId, 'Time to sign in',
+            'Start your work day in ShiftLog.', startMin ~/ 60, startMin % 60);
+      }
+      if (clockOut) {
+        await _scheduleDaily(_remindClockOutId, 'Time to sign out',
+            'Don’t forget to clock out in ShiftLog.', endMin ~/ 60,
+            endMin % 60);
+      }
+      if (weekly) {
+        // Sunday 9:00 AM (start of the Sun–Thu work week).
+        await _plugin.zonedSchedule(
+          id: _remindWeeklyId,
+          title: 'Weekly summary',
+          body: 'Review last week’s hours and plan the week ahead.',
+          scheduledDate: _nextWeekly(DateTime.sunday, 9, 0),
+          notificationDetails: _reminderDetails,
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+        );
+      }
+    } catch (e) {
+      debugPrint('syncReminders failed: $e');
+    }
+  }
+
+  Future<void> _scheduleDaily(
+      int id, String title, String body, int hour, int minute) async {
+    await _plugin.zonedSchedule(
+      id: id,
+      title: title,
+      body: body,
+      scheduledDate: _nextDaily(hour, minute),
+      notificationDetails: _reminderDetails,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      matchDateTimeComponents: DateTimeComponents.time,
+    );
+  }
+
+  Future<void> _cancel(int id) async {
+    try {
+      await _plugin.cancel(id: id);
+    } catch (_) {}
   }
 
   /// Persistent, non-dismissible notification shown while clocked in.

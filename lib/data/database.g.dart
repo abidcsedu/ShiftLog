@@ -211,6 +211,51 @@ class $UserSettingsTable extends UserSettings
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _remindClockInMeta = const VerificationMeta(
+    'remindClockIn',
+  );
+  @override
+  late final GeneratedColumn<bool> remindClockIn = GeneratedColumn<bool>(
+    'remind_clock_in',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("remind_clock_in" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _remindClockOutMeta = const VerificationMeta(
+    'remindClockOut',
+  );
+  @override
+  late final GeneratedColumn<bool> remindClockOut = GeneratedColumn<bool>(
+    'remind_clock_out',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("remind_clock_out" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _remindWeeklyMeta = const VerificationMeta(
+    'remindWeekly',
+  );
+  @override
+  late final GeneratedColumn<bool> remindWeekly = GeneratedColumn<bool>(
+    'remind_weekly',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("remind_weekly" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -230,6 +275,9 @@ class $UserSettingsTable extends UserSettings
     ramadanEndMin,
     joinDate,
     biometricLock,
+    remindClockIn,
+    remindClockOut,
+    remindWeekly,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -384,6 +432,33 @@ class $UserSettingsTable extends UserSettings
         ),
       );
     }
+    if (data.containsKey('remind_clock_in')) {
+      context.handle(
+        _remindClockInMeta,
+        remindClockIn.isAcceptableOrUnknown(
+          data['remind_clock_in']!,
+          _remindClockInMeta,
+        ),
+      );
+    }
+    if (data.containsKey('remind_clock_out')) {
+      context.handle(
+        _remindClockOutMeta,
+        remindClockOut.isAcceptableOrUnknown(
+          data['remind_clock_out']!,
+          _remindClockOutMeta,
+        ),
+      );
+    }
+    if (data.containsKey('remind_weekly')) {
+      context.handle(
+        _remindWeeklyMeta,
+        remindWeekly.isAcceptableOrUnknown(
+          data['remind_weekly']!,
+          _remindWeeklyMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -461,6 +536,18 @@ class $UserSettingsTable extends UserSettings
         DriftSqlType.bool,
         data['${effectivePrefix}biometric_lock'],
       )!,
+      remindClockIn: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}remind_clock_in'],
+      )!,
+      remindClockOut: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}remind_clock_out'],
+      )!,
+      remindWeekly: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}remind_weekly'],
+      )!,
     );
   }
 
@@ -488,6 +575,9 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
   final int ramadanEndMin;
   final DateTime? joinDate;
   final bool biometricLock;
+  final bool remindClockIn;
+  final bool remindClockOut;
+  final bool remindWeekly;
   const UserSetting({
     required this.id,
     required this.gender,
@@ -506,6 +596,9 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
     required this.ramadanEndMin,
     this.joinDate,
     required this.biometricLock,
+    required this.remindClockIn,
+    required this.remindClockOut,
+    required this.remindWeekly,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -533,6 +626,9 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
       map['join_date'] = Variable<DateTime>(joinDate);
     }
     map['biometric_lock'] = Variable<bool>(biometricLock);
+    map['remind_clock_in'] = Variable<bool>(remindClockIn);
+    map['remind_clock_out'] = Variable<bool>(remindClockOut);
+    map['remind_weekly'] = Variable<bool>(remindWeekly);
     return map;
   }
 
@@ -561,6 +657,9 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
           ? const Value.absent()
           : Value(joinDate),
       biometricLock: Value(biometricLock),
+      remindClockIn: Value(remindClockIn),
+      remindClockOut: Value(remindClockOut),
+      remindWeekly: Value(remindWeekly),
     );
   }
 
@@ -589,6 +688,9 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
       ramadanEndMin: serializer.fromJson<int>(json['ramadanEndMin']),
       joinDate: serializer.fromJson<DateTime?>(json['joinDate']),
       biometricLock: serializer.fromJson<bool>(json['biometricLock']),
+      remindClockIn: serializer.fromJson<bool>(json['remindClockIn']),
+      remindClockOut: serializer.fromJson<bool>(json['remindClockOut']),
+      remindWeekly: serializer.fromJson<bool>(json['remindWeekly']),
     );
   }
   @override
@@ -614,6 +716,9 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
       'ramadanEndMin': serializer.toJson<int>(ramadanEndMin),
       'joinDate': serializer.toJson<DateTime?>(joinDate),
       'biometricLock': serializer.toJson<bool>(biometricLock),
+      'remindClockIn': serializer.toJson<bool>(remindClockIn),
+      'remindClockOut': serializer.toJson<bool>(remindClockOut),
+      'remindWeekly': serializer.toJson<bool>(remindWeekly),
     };
   }
 
@@ -635,6 +740,9 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
     int? ramadanEndMin,
     Value<DateTime?> joinDate = const Value.absent(),
     bool? biometricLock,
+    bool? remindClockIn,
+    bool? remindClockOut,
+    bool? remindWeekly,
   }) => UserSetting(
     id: id ?? this.id,
     gender: gender ?? this.gender,
@@ -654,6 +762,9 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
     ramadanEndMin: ramadanEndMin ?? this.ramadanEndMin,
     joinDate: joinDate.present ? joinDate.value : this.joinDate,
     biometricLock: biometricLock ?? this.biometricLock,
+    remindClockIn: remindClockIn ?? this.remindClockIn,
+    remindClockOut: remindClockOut ?? this.remindClockOut,
+    remindWeekly: remindWeekly ?? this.remindWeekly,
   );
   UserSetting copyWithCompanion(UserSettingsCompanion data) {
     return UserSetting(
@@ -698,6 +809,15 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
       biometricLock: data.biometricLock.present
           ? data.biometricLock.value
           : this.biometricLock,
+      remindClockIn: data.remindClockIn.present
+          ? data.remindClockIn.value
+          : this.remindClockIn,
+      remindClockOut: data.remindClockOut.present
+          ? data.remindClockOut.value
+          : this.remindClockOut,
+      remindWeekly: data.remindWeekly.present
+          ? data.remindWeekly.value
+          : this.remindWeekly,
     );
   }
 
@@ -720,7 +840,10 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
           ..write('ramadanStartMin: $ramadanStartMin, ')
           ..write('ramadanEndMin: $ramadanEndMin, ')
           ..write('joinDate: $joinDate, ')
-          ..write('biometricLock: $biometricLock')
+          ..write('biometricLock: $biometricLock, ')
+          ..write('remindClockIn: $remindClockIn, ')
+          ..write('remindClockOut: $remindClockOut, ')
+          ..write('remindWeekly: $remindWeekly')
           ..write(')'))
         .toString();
   }
@@ -744,6 +867,9 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
     ramadanEndMin,
     joinDate,
     biometricLock,
+    remindClockIn,
+    remindClockOut,
+    remindWeekly,
   );
   @override
   bool operator ==(Object other) =>
@@ -765,7 +891,10 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
           other.ramadanStartMin == this.ramadanStartMin &&
           other.ramadanEndMin == this.ramadanEndMin &&
           other.joinDate == this.joinDate &&
-          other.biometricLock == this.biometricLock);
+          other.biometricLock == this.biometricLock &&
+          other.remindClockIn == this.remindClockIn &&
+          other.remindClockOut == this.remindClockOut &&
+          other.remindWeekly == this.remindWeekly);
 }
 
 class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
@@ -786,6 +915,9 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
   final Value<int> ramadanEndMin;
   final Value<DateTime?> joinDate;
   final Value<bool> biometricLock;
+  final Value<bool> remindClockIn;
+  final Value<bool> remindClockOut;
+  final Value<bool> remindWeekly;
   const UserSettingsCompanion({
     this.id = const Value.absent(),
     this.gender = const Value.absent(),
@@ -804,6 +936,9 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
     this.ramadanEndMin = const Value.absent(),
     this.joinDate = const Value.absent(),
     this.biometricLock = const Value.absent(),
+    this.remindClockIn = const Value.absent(),
+    this.remindClockOut = const Value.absent(),
+    this.remindWeekly = const Value.absent(),
   });
   UserSettingsCompanion.insert({
     this.id = const Value.absent(),
@@ -823,6 +958,9 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
     this.ramadanEndMin = const Value.absent(),
     this.joinDate = const Value.absent(),
     this.biometricLock = const Value.absent(),
+    this.remindClockIn = const Value.absent(),
+    this.remindClockOut = const Value.absent(),
+    this.remindWeekly = const Value.absent(),
   }) : gender = Value(gender),
        yearlyHolidayAllocation = Value(yearlyHolidayAllocation),
        createdAt = Value(createdAt);
@@ -844,6 +982,9 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
     Expression<int>? ramadanEndMin,
     Expression<DateTime>? joinDate,
     Expression<bool>? biometricLock,
+    Expression<bool>? remindClockIn,
+    Expression<bool>? remindClockOut,
+    Expression<bool>? remindWeekly,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -865,6 +1006,9 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
       if (ramadanEndMin != null) 'ramadan_end_min': ramadanEndMin,
       if (joinDate != null) 'join_date': joinDate,
       if (biometricLock != null) 'biometric_lock': biometricLock,
+      if (remindClockIn != null) 'remind_clock_in': remindClockIn,
+      if (remindClockOut != null) 'remind_clock_out': remindClockOut,
+      if (remindWeekly != null) 'remind_weekly': remindWeekly,
     });
   }
 
@@ -886,6 +1030,9 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
     Value<int>? ramadanEndMin,
     Value<DateTime?>? joinDate,
     Value<bool>? biometricLock,
+    Value<bool>? remindClockIn,
+    Value<bool>? remindClockOut,
+    Value<bool>? remindWeekly,
   }) {
     return UserSettingsCompanion(
       id: id ?? this.id,
@@ -906,6 +1053,9 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
       ramadanEndMin: ramadanEndMin ?? this.ramadanEndMin,
       joinDate: joinDate ?? this.joinDate,
       biometricLock: biometricLock ?? this.biometricLock,
+      remindClockIn: remindClockIn ?? this.remindClockIn,
+      remindClockOut: remindClockOut ?? this.remindClockOut,
+      remindWeekly: remindWeekly ?? this.remindWeekly,
     );
   }
 
@@ -965,6 +1115,15 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
     if (biometricLock.present) {
       map['biometric_lock'] = Variable<bool>(biometricLock.value);
     }
+    if (remindClockIn.present) {
+      map['remind_clock_in'] = Variable<bool>(remindClockIn.value);
+    }
+    if (remindClockOut.present) {
+      map['remind_clock_out'] = Variable<bool>(remindClockOut.value);
+    }
+    if (remindWeekly.present) {
+      map['remind_weekly'] = Variable<bool>(remindWeekly.value);
+    }
     return map;
   }
 
@@ -987,7 +1146,10 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
           ..write('ramadanStartMin: $ramadanStartMin, ')
           ..write('ramadanEndMin: $ramadanEndMin, ')
           ..write('joinDate: $joinDate, ')
-          ..write('biometricLock: $biometricLock')
+          ..write('biometricLock: $biometricLock, ')
+          ..write('remindClockIn: $remindClockIn, ')
+          ..write('remindClockOut: $remindClockOut, ')
+          ..write('remindWeekly: $remindWeekly')
           ..write(')'))
         .toString();
   }
@@ -3015,6 +3177,9 @@ typedef $$UserSettingsTableCreateCompanionBuilder =
       Value<int> ramadanEndMin,
       Value<DateTime?> joinDate,
       Value<bool> biometricLock,
+      Value<bool> remindClockIn,
+      Value<bool> remindClockOut,
+      Value<bool> remindWeekly,
     });
 typedef $$UserSettingsTableUpdateCompanionBuilder =
     UserSettingsCompanion Function({
@@ -3035,6 +3200,9 @@ typedef $$UserSettingsTableUpdateCompanionBuilder =
       Value<int> ramadanEndMin,
       Value<DateTime?> joinDate,
       Value<bool> biometricLock,
+      Value<bool> remindClockIn,
+      Value<bool> remindClockOut,
+      Value<bool> remindWeekly,
     });
 
 class $$UserSettingsTableFilterComposer
@@ -3128,6 +3296,21 @@ class $$UserSettingsTableFilterComposer
 
   ColumnFilters<bool> get biometricLock => $composableBuilder(
     column: $table.biometricLock,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get remindClockIn => $composableBuilder(
+    column: $table.remindClockIn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get remindClockOut => $composableBuilder(
+    column: $table.remindClockOut,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get remindWeekly => $composableBuilder(
+    column: $table.remindWeekly,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -3225,6 +3408,21 @@ class $$UserSettingsTableOrderingComposer
     column: $table.biometricLock,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get remindClockIn => $composableBuilder(
+    column: $table.remindClockIn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get remindClockOut => $composableBuilder(
+    column: $table.remindClockOut,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get remindWeekly => $composableBuilder(
+    column: $table.remindWeekly,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$UserSettingsTableAnnotationComposer
@@ -3310,6 +3508,21 @@ class $$UserSettingsTableAnnotationComposer
     column: $table.biometricLock,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get remindClockIn => $composableBuilder(
+    column: $table.remindClockIn,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get remindClockOut => $composableBuilder(
+    column: $table.remindClockOut,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get remindWeekly => $composableBuilder(
+    column: $table.remindWeekly,
+    builder: (column) => column,
+  );
 }
 
 class $$UserSettingsTableTableManager
@@ -3360,6 +3573,9 @@ class $$UserSettingsTableTableManager
                 Value<int> ramadanEndMin = const Value.absent(),
                 Value<DateTime?> joinDate = const Value.absent(),
                 Value<bool> biometricLock = const Value.absent(),
+                Value<bool> remindClockIn = const Value.absent(),
+                Value<bool> remindClockOut = const Value.absent(),
+                Value<bool> remindWeekly = const Value.absent(),
               }) => UserSettingsCompanion(
                 id: id,
                 gender: gender,
@@ -3378,6 +3594,9 @@ class $$UserSettingsTableTableManager
                 ramadanEndMin: ramadanEndMin,
                 joinDate: joinDate,
                 biometricLock: biometricLock,
+                remindClockIn: remindClockIn,
+                remindClockOut: remindClockOut,
+                remindWeekly: remindWeekly,
               ),
           createCompanionCallback:
               ({
@@ -3398,6 +3617,9 @@ class $$UserSettingsTableTableManager
                 Value<int> ramadanEndMin = const Value.absent(),
                 Value<DateTime?> joinDate = const Value.absent(),
                 Value<bool> biometricLock = const Value.absent(),
+                Value<bool> remindClockIn = const Value.absent(),
+                Value<bool> remindClockOut = const Value.absent(),
+                Value<bool> remindWeekly = const Value.absent(),
               }) => UserSettingsCompanion.insert(
                 id: id,
                 gender: gender,
@@ -3416,6 +3638,9 @@ class $$UserSettingsTableTableManager
                 ramadanEndMin: ramadanEndMin,
                 joinDate: joinDate,
                 biometricLock: biometricLock,
+                remindClockIn: remindClockIn,
+                remindClockOut: remindClockOut,
+                remindWeekly: remindWeekly,
               ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

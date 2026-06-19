@@ -71,6 +71,9 @@ class Repository {
     DateTime? joinDate,
     bool clearJoinDate = false,
     bool? biometricLock,
+    bool? remindClockIn,
+    bool? remindClockOut,
+    bool? remindWeekly,
   }) async {
     await (db.update(db.userSettings)..where((t) => t.id.equals(1))).write(
       UserSettingsCompanion(
@@ -106,6 +109,14 @@ class Repository {
         biometricLock: biometricLock == null
             ? const Value.absent()
             : Value(biometricLock),
+        remindClockIn: remindClockIn == null
+            ? const Value.absent()
+            : Value(remindClockIn),
+        remindClockOut: remindClockOut == null
+            ? const Value.absent()
+            : Value(remindClockOut),
+        remindWeekly:
+            remindWeekly == null ? const Value.absent() : Value(remindWeekly),
       ),
     );
   }

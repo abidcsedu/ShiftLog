@@ -26,6 +26,18 @@ class ShiftLogApp extends ConsumerWidget {
     ref.listen(todaySessionsProvider, (_, _) {
       WidgetService.sync(ref.read(repositoryProvider));
     });
+    // Reschedule reminders whenever the relevant settings change.
+    ref.listen(settingsProvider, (_, next) {
+      final s = next.value;
+      if (s == null) return;
+      NotificationService().syncReminders(
+        clockIn: s.remindClockIn,
+        clockOut: s.remindClockOut,
+        weekly: s.remindWeekly,
+        startMin: s.officeStartMin,
+        endMin: s.officeEndMin,
+      );
+    });
     return MaterialApp.router(
       title: 'ShiftLog',
       debugShowCheckedModeBanner: false,

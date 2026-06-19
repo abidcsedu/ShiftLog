@@ -152,6 +152,44 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
 
+          _section(context, 'Reminders'),
+          Card(
+            margin: const EdgeInsets.only(bottom: 8),
+            color: scheme.surfaceContainerHigh,
+            child: Column(
+              children: [
+                SwitchListTile(
+                  secondary: Icon(Icons.login, color: scheme.primary),
+                  title: const Text('Sign-in reminder',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: Text(
+                      'Daily at ${_hm(settings.officeStartMin)}'),
+                  value: settings.remindClockIn,
+                  onChanged: (v) => repo.updateSettings(remindClockIn: v),
+                ),
+                const Divider(height: 1),
+                SwitchListTile(
+                  secondary: Icon(Icons.logout, color: scheme.primary),
+                  title: const Text('Sign-out reminder',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle:
+                      Text('Daily at ${_hm(settings.officeEndMin)}'),
+                  value: settings.remindClockOut,
+                  onChanged: (v) => repo.updateSettings(remindClockOut: v),
+                ),
+                const Divider(height: 1),
+                SwitchListTile(
+                  secondary: Icon(Icons.summarize, color: scheme.primary),
+                  title: const Text('Weekly summary',
+                      style: TextStyle(fontWeight: FontWeight.w600)),
+                  subtitle: const Text('Sunday at 9:00 AM'),
+                  value: settings.remindWeekly,
+                  onChanged: (v) => repo.updateSettings(remindWeekly: v),
+                ),
+              ],
+            ),
+          ),
+
           _section(context, 'Appearance'),
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
