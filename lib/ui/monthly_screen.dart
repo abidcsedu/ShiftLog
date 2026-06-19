@@ -59,6 +59,18 @@ class _MonthlyScreenState extends ConsumerState<MonthlyScreen> {
         ? Colors.grey
         : (ok ? Colors.green.shade600 : Colors.red.shade600);
 
+    // Ahead/behind relative to the days actually worked (not the whole month):
+    //  - per worked day: average vs the required daily average
+    //  - cumulative: total vs (required average × days worked)
+    final hasWork = stats.daysWorked > 0;
+    final dayDelta = stats.average - stats.requiredAvg; // signed
+    final monthDelta =
+        stats.total - stats.requiredAvg * stats.daysWorked; // signed
+    final aheadDay = !dayDelta.isNegative;
+    final aheadMonth = !monthDelta.isNegative;
+    const aheadColor = Color(0xFF16A34A);
+    const behindColor = Color(0xFFDC2626);
+
     final days = stats.daily.keys.toList()..sort((a, b) => b.compareTo(a));
 
     final byProject = hoursByProject(
@@ -154,11 +166,11 @@ class _MonthlyScreenState extends ConsumerState<MonthlyScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: CounterCard(
-                  title: 'Required',
-                  value: formatDuration(stats.target),
-                  subtitle: '${_days(stats.expectedDays)} working days',
-                  color: Colors.blueGrey,
-                  icon: Icons.flag_outlined,
+                  title: 'WFH days',
+                  value: '${stats.wfhDays}',
+                  subtitle: 'this month',
+                  color: const Color(0xFF0D9488),
+                  icon: Icons.home_work,
                 ),
               ),
             ],
@@ -168,25 +180,30 @@ class _MonthlyScreenState extends ConsumerState<MonthlyScreen> {
             children: [
               Expanded(
                 child: CounterCard(
-                  title: stats.delta.isNegative ? 'Shortfall' : 'Surplus',
-                  value: formatSignedDuration(stats.delta),
-                  subtitle: 'vs target',
-                  color: stats.delta.isNegative
-                      ? const Color(0xFFDC2626)
-                      : const Color(0xFF16A34A),
-                  icon: stats.delta.isNegative
-                      ? Icons.trending_down
-                      : Icons.trending_up,
+                  title: !hasWork
+                      ? 'Per day'
+                      : (aheadDay ? 'Ahead / day' : 'Behind / day'),
+                  value: hasWork ? formatDuration(dayDelta.abs()) : '—',
+                  subtitle: 'vs ${formatDuration(stats.requiredAvg)} / day',
+                  color: !hasWork
+                      ? Colors.grey
+                      : (aheadDay ? aheadColor : behindColor),
+                  icon: aheadDay ? Icons.trending_up : Icons.trending_down,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: CounterCard(
-                  title: 'WFH days',
-                  value: '${stats.wfhDays}',
-                  subtitle: 'this month',
-                  color: const Color(0xFF0D9488),
-                  icon: Icons.home_work,
+                  title: !hasWork
+                      ? 'This month'
+                      : (aheadMonth ? 'Ahead this month' : 'Behind this month'),
+                  value: hasWork ? formatDuration(monthDelta.abs()) : '—',
+                  subtitle: 'over ${stats.daysWorked} worked '
+                      '${stats.daysWorked == 1 ? 'day' : 'days'}',
+                  color: !hasWork
+                      ? Colors.grey
+                      : (aheadMonth ? aheadColor : behindColor),
+                  icon: aheadMonth ? Icons.trending_up : Icons.trending_down,
                 ),
               ),
             ],
