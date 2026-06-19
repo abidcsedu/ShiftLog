@@ -409,21 +409,25 @@ class _TimerHero extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   formatDurationHms(total),
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                         color: scheme.onSurface,
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.5,
                       ),
                 ),
-                const SizedBox(height: 2),
-                Text(caption,
-                    style: TextStyle(
-                        color: scheme.onSurfaceVariant, fontSize: 12.5)),
               ],
             ),
           ),
+          // Caption sits below the ring so long break-even text never overlaps.
+          const SizedBox(height: 14),
+          Text(caption,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  color: scheme.onSurfaceVariant,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500)),
           if (clockedIn && activeSince != null) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
             Container(
               padding:
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
