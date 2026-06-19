@@ -336,8 +336,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   }
 }
 
-/// Branded gradient hero: date, live status, and a progress ring with
-/// goal-oriented messaging toward the daily target.
+/// Calm neutral hero (matches the calendar's surface look): date, live status,
+/// and a progress ring with goal-oriented messaging toward the daily target.
 class _TimerHero extends StatelessWidget {
   final String date;
   final Duration total;
@@ -355,15 +355,15 @@ class _TimerHero extends StatelessWidget {
     this.breakEven,
   });
 
-  static const _grad = [Color(0xFF4F46E5), Color(0xFF7C3AED)]; // indigo→violet
-
   @override
   Widget build(BuildContext context) {
-    const onHero = Colors.white;
+    final scheme = Theme.of(context).colorScheme;
     final progress = dayProgress(total, target);
     final pct = (progress * 100).clamp(0, 999).round();
     final met = total >= target && target > Duration.zero;
     final remaining = target - total;
+    const completeColor = Color(0xFF16A34A);
+    final ringColor = met ? completeColor : scheme.primary;
 
     final String caption = met
         ? '🎉  Daily target met'
@@ -373,30 +373,19 @@ class _TimerHero extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
+        color: scheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          colors: _grad,
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: _grad.first.withValues(alpha: 0.25),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          ),
-        ],
       ),
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
       child: Column(
         children: [
           Row(
             children: [
-              const Icon(Icons.event, size: 18, color: onHero),
+              Icon(Icons.event, size: 18, color: scheme.onSurfaceVariant),
               const SizedBox(width: 8),
               Text(date,
-                  style: const TextStyle(
-                      color: onHero, fontWeight: FontWeight.w600)),
+                  style: TextStyle(
+                      color: scheme.onSurface, fontWeight: FontWeight.w600)),
               const Spacer(),
               _StatusPill(clockedIn: clockedIn),
             ],
@@ -404,15 +393,15 @@ class _TimerHero extends StatelessWidget {
           const SizedBox(height: 20),
           ProgressRing(
             progress: progress,
-            color: Colors.white, // clean white arc on the gradient
-            completeColor: const Color(0xFF6EE7B7), // soft mint when complete
-            trackColor: Colors.white.withValues(alpha: 0.22),
+            color: ringColor,
+            completeColor: completeColor,
+            trackColor: scheme.surfaceContainerHighest,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('TODAY’S TOTAL',
+                Text('TODAY’S TOTAL',
                     style: TextStyle(
-                      color: Colors.white70,
+                      color: scheme.onSurfaceVariant,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.2,
                       fontSize: 11,
@@ -421,14 +410,15 @@ class _TimerHero extends StatelessWidget {
                 Text(
                   formatDurationHms(total),
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        color: onHero,
+                        color: scheme.onSurface,
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.5,
                       ),
                 ),
                 const SizedBox(height: 2),
                 Text(caption,
-                    style: const TextStyle(color: Colors.white, fontSize: 12.5)),
+                    style: TextStyle(
+                        color: scheme.onSurfaceVariant, fontSize: 12.5)),
               ],
             ),
           ),
@@ -438,12 +428,12 @@ class _TimerHero extends StatelessWidget {
               padding:
                   const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.15),
+                color: scheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text('Active since ${formatTime(activeSince!)}',
-                  style: const TextStyle(
-                      color: onHero,
+                  style: TextStyle(
+                      color: scheme.onSurface,
                       fontWeight: FontWeight.w600,
                       fontSize: 12)),
             ),
@@ -460,11 +450,13 @@ class _StatusPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = clockedIn ? const Color(0xFF34D399) : Colors.white;
+    final scheme = Theme.of(context).colorScheme;
+    final color =
+        clockedIn ? const Color(0xFF16A34A) : scheme.onSurfaceVariant;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.18),
+        color: color.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Row(
@@ -477,10 +469,8 @@ class _StatusPill extends StatelessWidget {
           ),
           const SizedBox(width: 6),
           Text(clockedIn ? 'Active' : 'Idle',
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12)),
+              style: TextStyle(
+                  color: color, fontWeight: FontWeight.w700, fontSize: 12)),
         ],
       ),
     );
