@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:home_widget/home_widget.dart';
 import 'package:local_auth/local_auth.dart';
 
 import 'app/router.dart';
 import 'services/notification_service.dart';
+import 'services/widget_service.dart';
 import 'state/providers.dart';
 import 'ui/theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotificationService().init();
+  await HomeWidget.registerInteractivityCallback(widgetInteractiveCallback);
   runApp(const ProviderScope(child: ShiftLogApp()));
 }
 
@@ -19,6 +22,10 @@ class ShiftLogApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
+    // Keep the home-screen widget in sync with today's sessions.
+    ref.listen(todaySessionsProvider, (_, __) {
+      WidgetService.sync(ref.read(repositoryProvider));
+    });
     return MaterialApp.router(
       title: 'ShiftLog',
       debugShowCheckedModeBanner: false,
