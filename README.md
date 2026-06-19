@@ -32,7 +32,10 @@ month-wise **8h 30m per working day** target and a heat-map calendar.
 
 **Notes**
 - A **Notes** tab for **daily journal** and **meeting** notes — title, body, tags, an
-  action-item checklist, pin, and search / filter. Included in backups.
+  action-item checklist, pin, and search / filter.
+- **Folders & subfolders** organise notes; drill in to a folder, file a note anywhere,
+  and rename/delete (delete reparents its contents — nothing is lost). A seamless
+  title-into-body editor like a modern notes app. All of it is included in backups.
 
 **Limits & balances**
 - **WFH limits** — max 2 / month and 12 / year, counted at the day level; Sign In is
