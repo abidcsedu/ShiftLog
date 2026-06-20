@@ -255,26 +255,27 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
           const SizedBox(height: 16),
 
-          // Big Sign In / Out button — solid blue to sign in, solid red to sign
-          // out, with a soft accent glow while idle.
+          // Big Sign In / Out button — deep navy to sign in, deep red to sign
+          // out, each with a soft matching glow.
           AnimatedContainer(
             duration: const Duration(milliseconds: 250),
             height: 60,
             clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
               color: clockedIn
-                  ? Theme.of(context).colorScheme.error
+                  ? const Color(0xFFC0504D)
                   : const Color(0xFF1E40AF),
               borderRadius: BorderRadius.circular(18),
-              boxShadow: clockedIn
-                  ? null
-                  : [
-                      BoxShadow(
-                        color: const Color(0xFF1E40AF).withValues(alpha: 0.32),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
+              boxShadow: [
+                BoxShadow(
+                  color: (clockedIn
+                          ? const Color(0xFFC0504D)
+                          : const Color(0xFF1E40AF))
+                      .withValues(alpha: 0.32),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
             child: Material(
               color: Colors.transparent,
