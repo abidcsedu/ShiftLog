@@ -71,10 +71,18 @@ class SettingsScreen extends ConsumerWidget {
           ),
           _InfoTile(
             icon: Icons.timelapse,
-            title: 'Daily target',
-            value: formatDuration(Duration(
-                minutes: (settings.officeEndMin - settings.officeStartMin)
-                    .clamp(0, 24 * 60))),
+            // The effective target — Ramadan hours override office hours while
+            // Ramadan mode is on, so show (and label) what's actually in force.
+            title: settings.ramadanEnabled
+                ? 'Daily target · Ramadan'
+                : 'Daily target',
+            value: formatDuration(effectiveTarget(
+              officeStartMin: settings.officeStartMin,
+              officeEndMin: settings.officeEndMin,
+              ramadanEnabled: settings.ramadanEnabled,
+              ramadanStartMin: settings.ramadanStartMin,
+              ramadanEndMin: settings.ramadanEndMin,
+            )),
           ),
 
           _section(context, 'Ramadan schedule'),
