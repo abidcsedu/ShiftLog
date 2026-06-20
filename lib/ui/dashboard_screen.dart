@@ -264,13 +264,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             decoration: BoxDecoration(
               color: clockedIn
                   ? Theme.of(context).colorScheme.error
-                  : const Color(0xFF2563EB),
+                  : const Color(0xFF1E40AF),
               borderRadius: BorderRadius.circular(18),
               boxShadow: clockedIn
                   ? null
                   : [
                       BoxShadow(
-                        color: const Color(0xFF2563EB).withValues(alpha: 0.32),
+                        color: const Color(0xFF1E40AF).withValues(alpha: 0.32),
                         blurRadius: 20,
                         offset: const Offset(0, 8),
                       ),
