@@ -4,13 +4,13 @@ import 'package:google_fonts/google_fonts.dart';
 import '../domain/enums.dart';
 
 /// Central design system for ShiftLog — a refined, cool-tinted dark palette
-/// with a modern typeface and an indigo→violet brand gradient.
+/// with a modern typeface and an ocean blue→cyan brand gradient.
 class AppTheme {
-  static const Color seed = Color(0xFF6366F1); // indigo-500
+  static const Color seed = Color(0xFF3B82F6); // blue-500
 
   /// Signature accent gradient used on the ring, primary actions, etc.
   static const LinearGradient brandGradient = LinearGradient(
-    colors: [Color(0xFF6366F1), Color(0xFF9333EA)],
+    colors: [Color(0xFF3B82F6), Color(0xFF06B6D4)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -25,8 +25,8 @@ class AppTheme {
         seedColor: seed, brightness: Brightness.dark);
     // Cool near-black surfaces with clear elevation steps for real depth.
     final scheme = base.copyWith(
-      primary: const Color(0xFF818CF8),
-      onPrimary: const Color(0xFF111324),
+      primary: const Color(0xFF60A5FA),
+      onPrimary: const Color(0xFF07203A),
       surface: const Color(0xFF0E1014),
       onSurface: const Color(0xFFECEEF2),
       onSurfaceVariant: const Color(0xFF9BA1AE),
@@ -137,7 +137,7 @@ class ModeVisual {
 }
 
 ModeVisual modeVisual(WorkMode mode) => switch (mode) {
-      WorkMode.office => const ModeVisual(Color(0xFF818CF8), Icons.business),
+      WorkMode.office => const ModeVisual(Color(0xFF3B82F6), Icons.business),
       WorkMode.wfh => const ModeVisual(Color(0xFF2DD4BF), Icons.home_work),
       WorkMode.outside =>
         const ModeVisual(Color(0xFFFB923C), Icons.directions_walk),

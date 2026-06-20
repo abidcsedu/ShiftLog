@@ -255,22 +255,23 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
           const SizedBox(height: 16),
 
-          // Big Sign In / Out button — brand gradient to sign in, solid red to
-          // sign out, with a soft accent glow while idle.
+          // Big Sign In / Out button — solid blue to sign in, solid red to sign
+          // out, with a soft accent glow while idle.
           AnimatedContainer(
             duration: const Duration(milliseconds: 250),
             height: 60,
             clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
-              gradient: clockedIn ? null : AppTheme.brandGradient,
-              color: clockedIn ? Theme.of(context).colorScheme.error : null,
+              color: clockedIn
+                  ? Theme.of(context).colorScheme.error
+                  : const Color(0xFF2563EB),
               borderRadius: BorderRadius.circular(18),
               boxShadow: clockedIn
                   ? null
                   : [
                       BoxShadow(
-                        color: AppTheme.seed.withValues(alpha: 0.35),
-                        blurRadius: 22,
+                        color: const Color(0xFF2563EB).withValues(alpha: 0.32),
+                        blurRadius: 20,
                         offset: const Offset(0, 8),
                       ),
                     ],
@@ -329,7 +330,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   title: 'WFH / yr',
                   value: '${wfh.yearRemaining}',
                   subtitle: 'of ${wfh.yearLimit} left',
-                  color: const Color(0xFF4F46E5),
+                  color: const Color(0xFF3B82F6),
                   icon: Icons.calendar_today,
                 ),
               ),

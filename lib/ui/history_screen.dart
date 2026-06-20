@@ -407,7 +407,7 @@ class _DayCell extends StatelessWidget {
                   width: 6,
                   height: 6,
                   decoration: const BoxDecoration(
-                      color: Color(0xFF9333EA), shape: BoxShape.circle),
+                      color: Color(0xFFEC4899), shape: BoxShape.circle),
                 ),
               ),
             // Marked office holiday gets a small icon (it's also rose-tinted).
@@ -454,7 +454,7 @@ class _Legend extends StatelessWidget {
           children: [
             _LegendKey(color: tint(const Color(0xFFF59E0B)), label: 'Weekend'),
             _LegendKey(color: tint(const Color(0xFFF43F5E)), label: 'Holiday'),
-            _LegendKey(color: const Color(0xFF9333EA), label: 'Leave'),
+            _LegendKey(color: const Color(0xFFEC4899), label: 'Leave'),
           ],
         ),
         const SizedBox(height: 14),
@@ -563,9 +563,9 @@ class _LeavesTab extends ConsumerWidget {
                 child: ListTile(
                   leading: CircleAvatar(
                     backgroundColor:
-                        const Color(0xFF9333EA).withValues(alpha: 0.14),
+                        const Color(0xFFEC4899).withValues(alpha: 0.14),
                     child: const Icon(Icons.beach_access,
-                        color: Color(0xFF9333EA)),
+                        color: Color(0xFFEC4899)),
                   ),
                   title: Text('${r.category.label} • ${_fmtDays(r.daysConsumed)}',
                       style: const TextStyle(fontWeight: FontWeight.w700)),

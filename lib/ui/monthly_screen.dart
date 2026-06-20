@@ -154,7 +154,7 @@ class _MonthlyScreenState extends ConsumerState<MonthlyScreen> {
                   value: formatDuration(stats.total),
                   subtitle:
                       '${stats.daysWorked} of ${_days(stats.expectedDays)} days',
-                  color: const Color(0xFF4F46E5),
+                  color: const Color(0xFF3B82F6),
                   icon: Icons.timer_outlined,
                 ),
               ),
