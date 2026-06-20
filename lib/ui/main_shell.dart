@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-/// Persistent bottom navigation shell hosting the 4 top-level tabs.
+import '../state/providers.dart';
+
+/// Persistent bottom navigation shell hosting the 5 top-level tabs.
 /// Each tab keeps its own state/scroll via StatefulShellRoute.indexedStack.
-class MainShell extends StatelessWidget {
+class MainShell extends ConsumerWidget {
   final StatefulNavigationShell navigationShell;
   const MainShell({super.key, required this.navigationShell});
 
@@ -15,19 +18,23 @@ class MainShell extends StatelessWidget {
     _Dest(Icons.settings_outlined, Icons.settings, 'Settings'),
   ];
 
-  void _onTap(int index) => navigationShell.goBranch(
-        index,
-        // Re-tapping the active tab pops it to its initial route.
-        initialLocation: index == navigationShell.currentIndex,
-      );
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: _onTap,
+        onDestinationSelected: (index) {
+          // Replay the Home progress-ring fill each time Home is selected.
+          if (index == 0) {
+            ref.read(homeRevealProvider.notifier).state++;
+          }
+          navigationShell.goBranch(
+            index,
+            // Re-tapping the active tab pops it to its initial route.
+            initialLocation: index == navigationShell.currentIndex,
+          );
+        },
         destinations: [
           for (final d in _destinations)
             NavigationDestination(

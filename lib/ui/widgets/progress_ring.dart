@@ -38,7 +38,7 @@ class ProgressRing extends StatelessWidget {
       // Sweep smoothly to the current value on load and whenever it changes.
       child: TweenAnimationBuilder<double>(
         tween: Tween(begin: 0, end: target),
-        duration: const Duration(milliseconds: 650),
+        duration: const Duration(milliseconds: 1100),
         curve: Curves.easeOutCubic,
         child: Center(child: child),
         builder: (context, value, child) => CustomPaint(

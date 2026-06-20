@@ -108,6 +108,10 @@ final leaveDaysMapProvider = Provider<Map<String, LeaveType>>((ref) {
 final selectedModeProvider =
     StateProvider<WorkMode>((ref) => WorkMode.office);
 
+// Bumped whenever the Home tab is (re)selected, so the progress ring replays
+// its fill animation each time you land on Home.
+final homeRevealProvider = StateProvider<int>((ref) => 0);
+
 // --- derived counters (computed via pure work_logic) ---
 class WfhStatus {
   final int monthUsed, monthLimit, yearUsed, yearLimit;

@@ -354,6 +354,9 @@ class _HoursChart extends StatelessWidget {
                 ),
               ),
             ),
+            // Bars grow into place when the chart appears.
+            duration: const Duration(milliseconds: 700),
+            curve: Curves.easeOutCubic,
           ),
         ),
       ),

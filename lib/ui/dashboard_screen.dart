@@ -159,6 +159,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final selectedMode = ref.watch(selectedModeProvider);
     final dailyTarget = ref.watch(dailyTargetProvider);
     final name = ref.watch(displayNameProvider);
+    final revealTick = ref.watch(homeRevealProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -183,6 +184,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             clockedIn: clockedIn,
             activeSince: activeSince,
             breakEven: breakEvenTime(total, dailyTarget, clockedIn, DateTime.now()),
+            revealTick: revealTick,
           ),
           if (clockedIn && isOverdue(openToday.first, DateTime.now())) ...[
             const SizedBox(height: 12),
@@ -381,6 +383,7 @@ class _TimerHero extends StatelessWidget {
   final bool clockedIn;
   final DateTime? activeSince;
   final DateTime? breakEven;
+  final int revealTick;
 
   const _TimerHero({
     required this.date,
@@ -389,6 +392,7 @@ class _TimerHero extends StatelessWidget {
     required this.clockedIn,
     this.activeSince,
     this.breakEven,
+    this.revealTick = 0,
   });
 
   @override
@@ -431,6 +435,8 @@ class _TimerHero extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           ProgressRing(
+            // A fresh key each time Home is opened replays the fill animation.
+            key: ValueKey(revealTick),
             progress: progress,
             color: ringColor,
             completeColor: completeColor,
