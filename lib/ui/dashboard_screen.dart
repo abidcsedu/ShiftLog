@@ -163,12 +163,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final revealTick = ref.watch(homeRevealProvider);
     final photoPath = ref.watch(profilePhotoProvider);
     final company = ref.watch(companyNameProvider);
-    final joinDate = ref.watch(joinDateProvider);
 
     return Scaffold(
       appBar: AppBar(
-        titleSpacing: 16,
-        title: const Text('ShiftLog'),
         actions: [
           IconButton.filledTonal(
             icon: const Icon(Icons.add),
@@ -185,7 +182,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           _ProfileHeader(
             name: name,
             company: company,
-            joinDate: joinDate,
             photoPath: photoPath,
             onTapPhoto: () => showPhotoSheet(context, ref),
           ),
@@ -617,26 +613,16 @@ class _SessionTile extends StatelessWidget {
   }
 }
 
-String _greeting(String? name) {
-  final h = DateTime.now().hour;
-  final part = h < 12
-      ? 'Good morning'
-      : (h < 17 ? 'Good afternoon' : 'Good evening');
-  return name == null ? part : '$part, $name';
-}
-
-/// Top-of-Home profile block: photo (tap to change), greeting, company, tenure.
+/// Top-of-Home profile block: photo (tap to change), name, company.
 class _ProfileHeader extends StatelessWidget {
   final String? name;
   final String? company;
-  final DateTime? joinDate;
   final String? photoPath;
   final VoidCallback onTapPhoto;
 
   const _ProfileHeader({
     required this.name,
     required this.company,
-    required this.joinDate,
     required this.photoPath,
     required this.onTapPhoto,
   });
@@ -644,12 +630,6 @@ class _ProfileHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final sub = <String>[
-      ?company,
-      if (joinDate != null)
-        formatTenure(tenure(joinDate!, DateTime.now()), compact: true),
-    ].join('  ·  ');
-
     return Row(
       children: [
         ProfileAvatar(
@@ -665,7 +645,7 @@ class _ProfileHeader extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                _greeting(name),
+                name ?? 'Welcome',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context)
@@ -673,14 +653,14 @@ class _ProfileHeader extends StatelessWidget {
                     .titleLarge
                     ?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.3),
               ),
-              if (sub.isNotEmpty) ...[
+              if (company != null) ...[
                 const SizedBox(height: 2),
-                Text(sub,
+                Text(company!,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                         color: scheme.onSurfaceVariant,
-                        fontSize: 13,
+                        fontSize: 15,
                         fontWeight: FontWeight.w500)),
               ],
             ],

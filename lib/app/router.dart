@@ -10,6 +10,7 @@ import '../ui/monthly_screen.dart';
 import '../ui/notes_screen.dart';
 import '../ui/settings_screen.dart';
 import '../ui/setup_screen.dart';
+import '../ui/splash_screen.dart';
 
 /// Tracks just enough auth-like state (has the user completed setup?) to drive
 /// the setup<->app redirect, without rebuilding the whole router on every
@@ -35,7 +36,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   }, fireImmediately: true);
 
   return GoRouter(
-    initialLocation: '/home',
+    initialLocation: '/splash',
     refreshListenable: setupState,
     redirect: (context, state) {
       if (setupState.loading) return null;
@@ -45,6 +46,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
+      GoRoute(path: '/splash', builder: (_, _) => const SplashScreen()),
       GoRoute(path: '/setup', builder: (_, _) => const SetupScreen()),
       StatefulShellRoute.indexedStack(
         builder: (_, _, shell) => MainShell(navigationShell: shell),
