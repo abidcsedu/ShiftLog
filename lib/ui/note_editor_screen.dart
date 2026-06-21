@@ -17,14 +17,24 @@ class NoteEditorScreen extends ConsumerStatefulWidget {
   ConsumerState<NoteEditorScreen> createState() => _NoteEditorScreenState();
 }
 
-/// One editable checklist row: its own text controller + done flag.
+/// One editable checklist row: text controller + done / due / priority.
 class _ChecklistEntry {
   final TextEditingController controller;
   bool done;
-  _ChecklistEntry(String text, {this.done = false})
+  DateTime? due;
+  int priority;
+  _ChecklistEntry(String text, {this.done = false, this.due, this.priority = 0})
       : controller = TextEditingController(text: text);
   void dispose() => controller.dispose();
 }
+
+const _priorityColors = [
+  null, // 0 none
+  Color(0xFF3B82F6), // 1 low — blue
+  Color(0xFFF59E0B), // 2 medium — amber
+  Color(0xFFDC2626), // 3 high — red
+];
+const _priorityLabels = ['None', 'Low', 'Medium', 'High'];
 
 class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     with WidgetsBindingObserver {
@@ -58,7 +68,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     _tags = TextEditingController(text: e?.tags.join(', ') ?? '');
     _items = [
       for (final c in (e?.checklist ?? const <ChecklistItem>[]))
-        _ChecklistEntry(c.text, done: c.done),
+        _ChecklistEntry(c.text,
+            done: c.done, due: c.due, priority: c.priority),
     ];
     _pinned = e?.pinned ?? false;
   }
@@ -99,7 +110,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
   List<ChecklistItem> _collectItems() => [
         for (final it in _items)
           if (it.controller.text.trim().isNotEmpty)
-            ChecklistItem(it.controller.text.trim(), done: it.done),
+            ChecklistItem(it.controller.text.trim(),
+                done: it.done, due: it.due, priority: it.priority),
       ];
 
   /// Writes the note to the database without navigating. Safe to call on back,
@@ -170,6 +182,102 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
       _items.add(_ChecklistEntry(t));
       _newItem.clear();
     });
+  }
+
+  Future<void> _pickItemDue(_ChecklistEntry it) async {
+    final d = await showDatePicker(
+      context: context,
+      initialDate: it.due ?? DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+      helpText: 'Due date',
+    );
+    if (d == null || !mounted) return;
+    final t = await showTimePicker(
+      context: context,
+      initialTime: it.due == null
+          ? const TimeOfDay(hour: 9, minute: 0)
+          : TimeOfDay.fromDateTime(it.due!),
+      helpText: 'Due time',
+    );
+    setState(() => it.due = DateTime(
+        d.year, d.month, d.day, t?.hour ?? 9, t?.minute ?? 0));
+  }
+
+  /// Per-item options: priority, due date/time, delete.
+  void _itemOptions(int index) {
+    final it = _items[index];
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Priority',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w700, fontSize: 13)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    for (var p = 0; p < 4; p++)
+                      ChoiceChip(
+                        label: Text(_priorityLabels[p]),
+                        selected: it.priority == p,
+                        showCheckmark: false,
+                        avatar: p == 0
+                            ? null
+                            : Icon(Icons.flag,
+                                size: 16, color: _priorityColors[p]),
+                        onSelected: (_) {
+                          setSheet(() {});
+                          setState(() => it.priority = p);
+                        },
+                      ),
+                  ],
+                ),
+                const Divider(height: 24),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.event_outlined),
+                  title: Text(it.due == null ? 'Set due date' : _dueLabel(it.due!)),
+                  trailing: it.due == null
+                      ? null
+                      : IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () {
+                            setSheet(() {});
+                            setState(() => it.due = null);
+                          },
+                        ),
+                  onTap: () async {
+                    await _pickItemDue(it);
+                    setSheet(() {});
+                  },
+                ),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(Icons.delete_outline,
+                      color: Theme.of(ctx).colorScheme.error),
+                  title: Text('Delete item',
+                      style:
+                          TextStyle(color: Theme.of(ctx).colorScheme.error)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    setState(() => _items.removeAt(index).dispose());
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   static final _numbered = RegExp(r'^(\d+)\. ');
@@ -366,9 +474,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                 entry: _items[i],
                 onToggle: () =>
                     setState(() => _items[i].done = !_items[i].done),
-                onDelete: () => setState(() {
-                  _items.removeAt(i).dispose();
-                }),
+                onOptions: () => _itemOptions(i),
               ),
             Row(
               children: [
@@ -471,21 +577,27 @@ class _MetaChip extends StatelessWidget {
   }
 }
 
-/// An editable checklist row: tick to mark done, type to edit, X to remove.
+/// An editable checklist row: tick to mark done, type to edit, options for
+/// priority / due date / delete; shows a priority flag and a due chip.
 class _ChecklistRow extends StatelessWidget {
   final _ChecklistEntry entry;
   final VoidCallback onToggle;
-  final VoidCallback onDelete;
+  final VoidCallback onOptions;
   const _ChecklistRow(
       {super.key,
       required this.entry,
       required this.onToggle,
-      required this.onDelete});
+      required this.onOptions});
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final overdue = entry.due != null &&
+        !entry.done &&
+        entry.due!.isBefore(DateTime.now());
+    final dueColor = overdue ? scheme.error : scheme.onSurfaceVariant;
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
           width: 28,
@@ -498,19 +610,48 @@ class _ChecklistRow extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         Expanded(
-          child: TextField(
-            controller: entry.controller,
-            textCapitalization: TextCapitalization.sentences,
-            style: TextStyle(
-              decoration: entry.done ? TextDecoration.lineThrough : null,
-              color: entry.done ? scheme.onSurfaceVariant : scheme.onSurface,
-            ),
-            decoration: _bare(context, 'Item'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: entry.controller,
+                textCapitalization: TextCapitalization.sentences,
+                style: TextStyle(
+                  decoration:
+                      entry.done ? TextDecoration.lineThrough : null,
+                  color:
+                      entry.done ? scheme.onSurfaceVariant : scheme.onSurface,
+                ),
+                decoration: _bare(context, 'Item'),
+              ),
+              if (entry.due != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2, bottom: 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.schedule, size: 13, color: dueColor),
+                      const SizedBox(width: 4),
+                      Text(_dueLabel(entry.due!),
+                          style: TextStyle(
+                              color: dueColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500)),
+                    ],
+                  ),
+                ),
+            ],
           ),
         ),
+        if (entry.priority > 0)
+          Padding(
+            padding: const EdgeInsets.only(top: 8, left: 2),
+            child: Icon(Icons.flag,
+                size: 16, color: _priorityColors[entry.priority]),
+          ),
         IconButton(
-          icon: Icon(Icons.close, size: 18, color: scheme.onSurfaceVariant),
-          onPressed: onDelete,
+          icon: Icon(Icons.more_vert, size: 18, color: scheme.onSurfaceVariant),
+          onPressed: onOptions,
         ),
       ],
     );
@@ -523,4 +664,27 @@ String _pretty(DateTime d) {
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
   ];
   return '${m[d.month - 1]} ${d.day}, ${d.year}';
+}
+
+/// Friendly due label: "Today 5:00 PM", "Tomorrow 9:00 AM", "Jun 25, 9:00 AM".
+String _dueLabel(DateTime d) {
+  const m = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+  final now = DateTime.now();
+  final day = DateTime(d.year, d.month, d.day);
+  final today = DateTime(now.year, now.month, now.day);
+  final diff = day.difference(today).inDays;
+  final h = d.hour % 12 == 0 ? 12 : d.hour % 12;
+  final time =
+      '$h:${d.minute.toString().padLeft(2, '0')} ${d.hour >= 12 ? 'PM' : 'AM'}';
+  final datePart = diff == 0
+      ? 'Today'
+      : diff == 1
+          ? 'Tomorrow'
+          : diff == -1
+              ? 'Yesterday'
+              : '${m[d.month - 1]} ${d.day}';
+  return '$datePart  $time';
 }

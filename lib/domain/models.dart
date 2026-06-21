@@ -50,14 +50,29 @@ class LeaveRecordModel {
 class ChecklistItem {
   final String text;
   final bool done;
-  const ChecklistItem(this.text, {this.done = false});
+  final DateTime? due; // optional due date/time
+  final int priority; // 0 none, 1 low, 2 medium, 3 high
+  const ChecklistItem(this.text,
+      {this.done = false, this.due, this.priority = 0});
 
-  ChecklistItem copyWith({String? text, bool? done}) =>
-      ChecklistItem(text ?? this.text, done: done ?? this.done);
+  ChecklistItem copyWith({String? text, bool? done, DateTime? due, int? priority}) =>
+      ChecklistItem(text ?? this.text,
+          done: done ?? this.done,
+          due: due ?? this.due,
+          priority: priority ?? this.priority);
 
-  Map<String, dynamic> toJson() => {'text': text, 'done': done};
-  static ChecklistItem fromJson(Map<String, dynamic> j) =>
-      ChecklistItem(j['text'] as String? ?? '', done: j['done'] as bool? ?? false);
+  Map<String, dynamic> toJson() => {
+        'text': text,
+        'done': done,
+        if (due != null) 'due': due!.toIso8601String(),
+        if (priority != 0) 'priority': priority,
+      };
+  static ChecklistItem fromJson(Map<String, dynamic> j) => ChecklistItem(
+        j['text'] as String? ?? '',
+        done: j['done'] as bool? ?? false,
+        due: j['due'] == null ? null : DateTime.tryParse(j['due'] as String),
+        priority: j['priority'] as int? ?? 0,
+      );
 }
 
 /// A note folder (subfolders link via [parentId]; null = top level).
