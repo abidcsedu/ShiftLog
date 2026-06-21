@@ -40,18 +40,60 @@ class SettingsScreen extends ConsumerWidget {
             onTap: () => _editName(context, repo, settings.displayName),
           ),
           _Tile(
+            icon: Icons.business_outlined,
+            title: 'Company',
+            value: settings.companyName?.isNotEmpty == true
+                ? settings.companyName!
+                : 'Not set',
+            onTap: () => _editText(context, repo, 'Company',
+                settings.companyName, (v) => repo.updateSettings(companyName: v)),
+          ),
+          _Tile(
+            icon: Icons.badge_outlined,
+            title: 'Office ID',
+            value: settings.officeId?.isNotEmpty == true
+                ? settings.officeId!
+                : 'Not set',
+            onTap: () => _editText(context, repo, 'Office ID', settings.officeId,
+                (v) => repo.updateSettings(officeId: v)),
+          ),
+          _Tile(
             icon: Icons.wc,
             title: 'Gender',
             value: gender.label,
             onTap: () => _editGender(context, repo, gender),
           ),
           _Tile(
+            icon: Icons.cake_outlined,
+            title: 'Date of birth',
+            value:
+                settings.dob == null ? 'Not set' : _ymd(settings.dob!),
+            onTap: () => _editDob(context, repo, settings.dob),
+          ),
+          _Tile(
+            icon: Icons.phone_outlined,
+            title: 'Phone number',
+            value: settings.phone?.isNotEmpty == true
+                ? settings.phone!
+                : 'Not set',
+            onTap: () => _editText(context, repo, 'Phone number',
+                settings.phone, (v) => repo.updateSettings(phone: v),
+                keyboard: TextInputType.phone),
+          ),
+          _Tile(
             icon: Icons.event_available,
-            title: 'Join date',
+            title: 'Joining date',
             value: settings.joinDate == null
                 ? 'Not set'
                 : _ymd(settings.joinDate!),
             onTap: () => _editJoinDate(context, repo, settings.joinDate),
+          ),
+          _InfoTile(
+            icon: Icons.workspace_premium_outlined,
+            title: 'Time at company',
+            value: settings.joinDate == null
+                ? 'Set joining date'
+                : formatTenure(tenure(settings.joinDate!, DateTime.now())),
           ),
 
           _section(context, 'Office hours'),
@@ -289,6 +331,47 @@ class SettingsScreen extends ConsumerWidget {
       ),
     );
     if (name != null) await repo.updateSettings(displayName: name);
+  }
+
+  /// Generic single-field text editor; calls [onSave] with the trimmed value
+  /// ('' clears the field). Used for company, office ID, phone.
+  Future<void> _editText(BuildContext context, repo, String label,
+      String? current, Future<void> Function(String) onSave,
+      {TextInputType? keyboard}) async {
+    final controller = TextEditingController(text: current ?? '');
+    final value = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(label),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          keyboardType: keyboard,
+          decoration: InputDecoration(hintText: label),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () =>
+                  Navigator.pop(dialogContext, controller.text.trim()),
+              child: const Text('Save')),
+        ],
+      ),
+    );
+    if (value != null) await onSave(value);
+  }
+
+  Future<void> _editDob(BuildContext context, repo, DateTime? current) async {
+    final d = await showDatePicker(
+      context: context,
+      initialDate: current ?? DateTime(2000),
+      firstDate: DateTime(1950),
+      lastDate: DateTime.now(),
+      helpText: 'Date of birth',
+    );
+    if (d != null) await repo.updateSettings(dob: d);
   }
 
   Future<void> _editGender(BuildContext context, repo, Gender current) async {

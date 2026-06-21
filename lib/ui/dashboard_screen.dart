@@ -12,6 +12,7 @@ import 'theme.dart';
 import 'widgets/counter_card.dart';
 import 'widgets/leave_editor.dart';
 import 'widgets/mode_chip.dart';
+import 'widgets/profile_avatar.dart';
 import 'widgets/progress_ring.dart';
 import 'widgets/session_editor.dart';
 
@@ -160,10 +161,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final dailyTarget = ref.watch(dailyTargetProvider);
     final name = ref.watch(displayNameProvider);
     final revealTick = ref.watch(homeRevealProvider);
+    final photoPath = ref.watch(profilePhotoProvider);
+    final company = ref.watch(companyNameProvider);
+    final joinDate = ref.watch(joinDateProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(name == null ? 'ShiftLog' : _greeting(name)),
+        titleSpacing: 16,
+        title: const Text('ShiftLog'),
         actions: [
           IconButton.filledTonal(
             icon: const Icon(Icons.add),
@@ -176,6 +181,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          // --- Profile header: photo, greeting, company, tenure ---
+          _ProfileHeader(
+            name: name,
+            company: company,
+            joinDate: joinDate,
+            photoPath: photoPath,
+            onTapPhoto: () => showPhotoSheet(context, ref),
+          ),
+          const SizedBox(height: 18),
           // --- Hero: date, live status, progress ring toward daily target ---
           _TimerHero(
             date: _prettyDate(DateTime.now()),
@@ -603,10 +617,76 @@ class _SessionTile extends StatelessWidget {
   }
 }
 
-String _greeting(String name) {
+String _greeting(String? name) {
   final h = DateTime.now().hour;
   final part = h < 12
       ? 'Good morning'
       : (h < 17 ? 'Good afternoon' : 'Good evening');
-  return '$part, $name';
+  return name == null ? part : '$part, $name';
+}
+
+/// Top-of-Home profile block: photo (tap to change), greeting, company, tenure.
+class _ProfileHeader extends StatelessWidget {
+  final String? name;
+  final String? company;
+  final DateTime? joinDate;
+  final String? photoPath;
+  final VoidCallback onTapPhoto;
+
+  const _ProfileHeader({
+    required this.name,
+    required this.company,
+    required this.joinDate,
+    required this.photoPath,
+    required this.onTapPhoto,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final sub = <String>[
+      ?company,
+      if (joinDate != null)
+        formatTenure(tenure(joinDate!, DateTime.now()), compact: true),
+    ].join('  ·  ');
+
+    return Row(
+      children: [
+        ProfileAvatar(
+          radius: 28,
+          photoPath: photoPath,
+          name: name,
+          onTap: onTapPhoto,
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _greeting(name),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w800, letterSpacing: -0.3),
+              ),
+              if (sub.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(sub,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        color: scheme.onSurfaceVariant,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500)),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 }

@@ -267,4 +267,30 @@ void main() {
       expect(formatTime(DateTime(2026, 6, 19, 0, 5)), '12:05 AM');
     });
   });
+
+  group('tenure', () {
+    test('exact whole years', () {
+      final t = tenure(DateTime(2023, 6, 21), DateTime(2026, 6, 21));
+      expect((t.years, t.months, t.days), (3, 0, 0));
+    });
+    test('borrows days from the previous month', () {
+      final t = tenure(DateTime(2025, 1, 20), DateTime(2025, 3, 5));
+      expect((t.years, t.months, t.days), (0, 1, 13));
+    });
+    test('borrows a month when the day underflows', () {
+      final t = tenure(DateTime(2024, 1, 31), DateTime(2024, 3, 1));
+      expect((t.years, t.months), (0, 1));
+    });
+    test('same day is zero', () {
+      expect(tenure(DateTime(2026, 6, 21), DateTime(2026, 6, 21)).isZero, true);
+    });
+    test('future join date clamps to zero', () {
+      expect(tenure(DateTime(2030, 1, 1), DateTime(2026, 6, 21)).isZero, true);
+    });
+    test('formatTenure renders units and compact form', () {
+      expect(formatTenure(const Tenure(2, 1, 14)), '2 years, 1 month, 14 days');
+      expect(formatTenure(const Tenure(1, 0, 1)), '1 year, 1 day');
+      expect(formatTenure(const Tenure(2, 3, 14), compact: true), '2y 3m 14d');
+    });
+  });
 }

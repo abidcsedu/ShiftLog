@@ -33,8 +33,14 @@ class UserSettings extends Table {
       integer().withDefault(const Constant(570))(); // 9:30
   IntColumn get ramadanEndMin =>
       integer().withDefault(const Constant(930))(); // 15:30 (6h)
-  // Join date (for pro-rata leave entitlement).
+  // Join date (for pro-rata leave entitlement + tenure).
   DateTimeColumn get joinDate => dateTime().nullable()();
+  // Employee profile fields.
+  DateTimeColumn get dob => dateTime().nullable()();
+  TextColumn get phone => text().nullable()();
+  TextColumn get officeId => text().nullable()();
+  TextColumn get companyName => text().nullable()();
+  TextColumn get photoPath => text().nullable()();
   // Require device biometric/PIN to open the app.
   BoolColumn get biometricLock =>
       boolean().withDefault(const Constant(false))();
@@ -129,7 +135,7 @@ class AppDatabase extends _$AppDatabase {
       : super(executor ?? driftDatabase(name: 'shiftlog'));
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -170,6 +176,13 @@ class AppDatabase extends _$AppDatabase {
           if (from < 9) {
             await m.createTable(folders);
             await m.addColumn(notes, notes.folderId);
+          }
+          if (from < 10) {
+            await m.addColumn(userSettings, userSettings.dob);
+            await m.addColumn(userSettings, userSettings.phone);
+            await m.addColumn(userSettings, userSettings.officeId);
+            await m.addColumn(userSettings, userSettings.companyName);
+            await m.addColumn(userSettings, userSettings.photoPath);
           }
         },
       );

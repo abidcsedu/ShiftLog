@@ -172,6 +172,52 @@ Duration balance(Duration worked, Duration target) => worked - target;
 bool isOverdue(WorkSession s, DateTime now, {int hours = 16}) =>
     s.isOpen && now.difference(s.clockIn).inHours >= hours;
 
+/// Calendar-accurate length of service, split into years / months / days.
+class Tenure {
+  final int years;
+  final int months;
+  final int days;
+  const Tenure(this.years, this.months, this.days);
+  bool get isZero => years == 0 && months == 0 && days == 0;
+}
+
+/// Time between [join] and [now] as whole years, months and days (borrowing
+/// from real month lengths). Returns zero if [join] is today or in the future.
+Tenure tenure(DateTime join, DateTime now) {
+  final j = DateTime(join.year, join.month, join.day);
+  final n = DateTime(now.year, now.month, now.day);
+  if (!n.isAfter(j)) return const Tenure(0, 0, 0);
+  var years = n.year - j.year;
+  var months = n.month - j.month;
+  var days = n.day - j.day;
+  if (days < 0) {
+    months -= 1;
+    days += DateTime(n.year, n.month, 0).day; // days in the previous month
+  }
+  if (months < 0) {
+    years -= 1;
+    months += 12;
+  }
+  return Tenure(years, months, days);
+}
+
+/// "2 years, 3 months, 14 days" — or compact "2y 3m 14d".
+String formatTenure(Tenure t, {bool compact = false}) {
+  String unit(int v, String s) => '$v $s${v == 1 ? '' : 's'}';
+  if (compact) {
+    final parts = <String>[];
+    if (t.years > 0) parts.add('${t.years}y');
+    if (t.months > 0) parts.add('${t.months}m');
+    parts.add('${t.days}d');
+    return parts.join(' ');
+  }
+  final parts = <String>[];
+  if (t.years > 0) parts.add(unit(t.years, 'year'));
+  if (t.months > 0) parts.add(unit(t.months, 'month'));
+  parts.add(unit(t.days, 'day'));
+  return parts.join(', ');
+}
+
 // --- D. Monthly working-hours target (8h 30m average per worked day) ---
 
 /// Required average per worked day, accumulated month-wise.

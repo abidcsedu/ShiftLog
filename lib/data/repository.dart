@@ -73,6 +73,13 @@ class Repository {
     bool? remindClockIn,
     bool? remindClockOut,
     bool? remindWeekly,
+    DateTime? dob,
+    bool clearDob = false,
+    String? phone,
+    String? officeId,
+    String? companyName,
+    String? photoPath,
+    bool clearPhoto = false,
   }) async {
     await (db.update(db.userSettings)..where((t) => t.id.equals(1))).write(
       UserSettingsCompanion(
@@ -116,9 +123,23 @@ class Repository {
             : Value(remindClockOut),
         remindWeekly:
             remindWeekly == null ? const Value.absent() : Value(remindWeekly),
+        dob: clearDob
+            ? const Value(null)
+            : (dob == null ? const Value.absent() : Value(dob)),
+        phone: _textValue(phone),
+        officeId: _textValue(officeId),
+        companyName: _textValue(companyName),
+        photoPath: clearPhoto
+            ? const Value(null)
+            : (photoPath == null ? const Value.absent() : Value(photoPath)),
       ),
     );
   }
+
+  /// For optional text settings: null = leave unchanged, '' = clear to null.
+  static Value<String?> _textValue(String? v) => v == null
+      ? const Value.absent()
+      : Value(v.trim().isEmpty ? null : v.trim());
 
   // --- day-type overrides (swaps / extra holidays) ---
   Stream<Map<String, String>> watchDayOverrides() => db.watchOverrides().map(
@@ -344,6 +365,10 @@ class Repository {
               'ramadanEndMin': s.ramadanEndMin,
               'joinDate': s.joinDate?.toIso8601String(),
               'biometricLock': s.biometricLock,
+              'dob': s.dob?.toIso8601String(),
+              'phone': s.phone,
+              'officeId': s.officeId,
+              'companyName': s.companyName,
               'createdAt': s.createdAt.toIso8601String(),
             },
       'sessions': [
@@ -430,6 +455,12 @@ class Repository {
                     ? null
                     : DateTime.parse(s['joinDate'] as String)),
                 biometricLock: Value(s['biometricLock'] as bool? ?? false),
+                dob: Value(s['dob'] == null
+                    ? null
+                    : DateTime.parse(s['dob'] as String)),
+                phone: Value(s['phone'] as String?),
+                officeId: Value(s['officeId'] as String?),
+                companyName: Value(s['companyName'] as String?),
               ),
             );
       }

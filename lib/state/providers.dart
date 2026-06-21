@@ -57,6 +57,16 @@ final displayNameProvider = Provider<String?>((ref) {
 final joinDateProvider = Provider<DateTime?>(
     (ref) => ref.watch(settingsProvider).value?.joinDate);
 
+final profilePhotoProvider = Provider<String?>((ref) {
+  final p = ref.watch(settingsProvider).value?.photoPath;
+  return (p == null || p.isEmpty) ? null : p;
+});
+
+final companyNameProvider = Provider<String?>((ref) {
+  final c = ref.watch(settingsProvider).value?.companyName;
+  return (c == null || c.trim().isEmpty) ? null : c.trim();
+});
+
 final biometricLockProvider = Provider<bool>(
     (ref) => ref.watch(settingsProvider).value?.biometricLock ?? false);
 

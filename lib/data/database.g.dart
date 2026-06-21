@@ -196,6 +196,57 @@ class $UserSettingsTable extends UserSettings
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _dobMeta = const VerificationMeta('dob');
+  @override
+  late final GeneratedColumn<DateTime> dob = GeneratedColumn<DateTime>(
+    'dob',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _phoneMeta = const VerificationMeta('phone');
+  @override
+  late final GeneratedColumn<String> phone = GeneratedColumn<String>(
+    'phone',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _officeIdMeta = const VerificationMeta(
+    'officeId',
+  );
+  @override
+  late final GeneratedColumn<String> officeId = GeneratedColumn<String>(
+    'office_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _companyNameMeta = const VerificationMeta(
+    'companyName',
+  );
+  @override
+  late final GeneratedColumn<String> companyName = GeneratedColumn<String>(
+    'company_name',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _photoPathMeta = const VerificationMeta(
+    'photoPath',
+  );
+  @override
+  late final GeneratedColumn<String> photoPath = GeneratedColumn<String>(
+    'photo_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _biometricLockMeta = const VerificationMeta(
     'biometricLock',
   );
@@ -274,6 +325,11 @@ class $UserSettingsTable extends UserSettings
     ramadanStartMin,
     ramadanEndMin,
     joinDate,
+    dob,
+    phone,
+    officeId,
+    companyName,
+    photoPath,
     biometricLock,
     remindClockIn,
     remindClockOut,
@@ -423,6 +479,39 @@ class $UserSettingsTable extends UserSettings
         joinDate.isAcceptableOrUnknown(data['join_date']!, _joinDateMeta),
       );
     }
+    if (data.containsKey('dob')) {
+      context.handle(
+        _dobMeta,
+        dob.isAcceptableOrUnknown(data['dob']!, _dobMeta),
+      );
+    }
+    if (data.containsKey('phone')) {
+      context.handle(
+        _phoneMeta,
+        phone.isAcceptableOrUnknown(data['phone']!, _phoneMeta),
+      );
+    }
+    if (data.containsKey('office_id')) {
+      context.handle(
+        _officeIdMeta,
+        officeId.isAcceptableOrUnknown(data['office_id']!, _officeIdMeta),
+      );
+    }
+    if (data.containsKey('company_name')) {
+      context.handle(
+        _companyNameMeta,
+        companyName.isAcceptableOrUnknown(
+          data['company_name']!,
+          _companyNameMeta,
+        ),
+      );
+    }
+    if (data.containsKey('photo_path')) {
+      context.handle(
+        _photoPathMeta,
+        photoPath.isAcceptableOrUnknown(data['photo_path']!, _photoPathMeta),
+      );
+    }
     if (data.containsKey('biometric_lock')) {
       context.handle(
         _biometricLockMeta,
@@ -532,6 +621,26 @@ class $UserSettingsTable extends UserSettings
         DriftSqlType.dateTime,
         data['${effectivePrefix}join_date'],
       ),
+      dob: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}dob'],
+      ),
+      phone: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}phone'],
+      ),
+      officeId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}office_id'],
+      ),
+      companyName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}company_name'],
+      ),
+      photoPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}photo_path'],
+      ),
       biometricLock: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}biometric_lock'],
@@ -574,6 +683,11 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
   final int ramadanStartMin;
   final int ramadanEndMin;
   final DateTime? joinDate;
+  final DateTime? dob;
+  final String? phone;
+  final String? officeId;
+  final String? companyName;
+  final String? photoPath;
   final bool biometricLock;
   final bool remindClockIn;
   final bool remindClockOut;
@@ -595,6 +709,11 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
     required this.ramadanStartMin,
     required this.ramadanEndMin,
     this.joinDate,
+    this.dob,
+    this.phone,
+    this.officeId,
+    this.companyName,
+    this.photoPath,
     required this.biometricLock,
     required this.remindClockIn,
     required this.remindClockOut,
@@ -624,6 +743,21 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
     map['ramadan_end_min'] = Variable<int>(ramadanEndMin);
     if (!nullToAbsent || joinDate != null) {
       map['join_date'] = Variable<DateTime>(joinDate);
+    }
+    if (!nullToAbsent || dob != null) {
+      map['dob'] = Variable<DateTime>(dob);
+    }
+    if (!nullToAbsent || phone != null) {
+      map['phone'] = Variable<String>(phone);
+    }
+    if (!nullToAbsent || officeId != null) {
+      map['office_id'] = Variable<String>(officeId);
+    }
+    if (!nullToAbsent || companyName != null) {
+      map['company_name'] = Variable<String>(companyName);
+    }
+    if (!nullToAbsent || photoPath != null) {
+      map['photo_path'] = Variable<String>(photoPath);
     }
     map['biometric_lock'] = Variable<bool>(biometricLock);
     map['remind_clock_in'] = Variable<bool>(remindClockIn);
@@ -656,6 +790,19 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
       joinDate: joinDate == null && nullToAbsent
           ? const Value.absent()
           : Value(joinDate),
+      dob: dob == null && nullToAbsent ? const Value.absent() : Value(dob),
+      phone: phone == null && nullToAbsent
+          ? const Value.absent()
+          : Value(phone),
+      officeId: officeId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(officeId),
+      companyName: companyName == null && nullToAbsent
+          ? const Value.absent()
+          : Value(companyName),
+      photoPath: photoPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(photoPath),
       biometricLock: Value(biometricLock),
       remindClockIn: Value(remindClockIn),
       remindClockOut: Value(remindClockOut),
@@ -687,6 +834,11 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
       ramadanStartMin: serializer.fromJson<int>(json['ramadanStartMin']),
       ramadanEndMin: serializer.fromJson<int>(json['ramadanEndMin']),
       joinDate: serializer.fromJson<DateTime?>(json['joinDate']),
+      dob: serializer.fromJson<DateTime?>(json['dob']),
+      phone: serializer.fromJson<String?>(json['phone']),
+      officeId: serializer.fromJson<String?>(json['officeId']),
+      companyName: serializer.fromJson<String?>(json['companyName']),
+      photoPath: serializer.fromJson<String?>(json['photoPath']),
       biometricLock: serializer.fromJson<bool>(json['biometricLock']),
       remindClockIn: serializer.fromJson<bool>(json['remindClockIn']),
       remindClockOut: serializer.fromJson<bool>(json['remindClockOut']),
@@ -715,6 +867,11 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
       'ramadanStartMin': serializer.toJson<int>(ramadanStartMin),
       'ramadanEndMin': serializer.toJson<int>(ramadanEndMin),
       'joinDate': serializer.toJson<DateTime?>(joinDate),
+      'dob': serializer.toJson<DateTime?>(dob),
+      'phone': serializer.toJson<String?>(phone),
+      'officeId': serializer.toJson<String?>(officeId),
+      'companyName': serializer.toJson<String?>(companyName),
+      'photoPath': serializer.toJson<String?>(photoPath),
       'biometricLock': serializer.toJson<bool>(biometricLock),
       'remindClockIn': serializer.toJson<bool>(remindClockIn),
       'remindClockOut': serializer.toJson<bool>(remindClockOut),
@@ -739,6 +896,11 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
     int? ramadanStartMin,
     int? ramadanEndMin,
     Value<DateTime?> joinDate = const Value.absent(),
+    Value<DateTime?> dob = const Value.absent(),
+    Value<String?> phone = const Value.absent(),
+    Value<String?> officeId = const Value.absent(),
+    Value<String?> companyName = const Value.absent(),
+    Value<String?> photoPath = const Value.absent(),
     bool? biometricLock,
     bool? remindClockIn,
     bool? remindClockOut,
@@ -761,6 +923,11 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
     ramadanStartMin: ramadanStartMin ?? this.ramadanStartMin,
     ramadanEndMin: ramadanEndMin ?? this.ramadanEndMin,
     joinDate: joinDate.present ? joinDate.value : this.joinDate,
+    dob: dob.present ? dob.value : this.dob,
+    phone: phone.present ? phone.value : this.phone,
+    officeId: officeId.present ? officeId.value : this.officeId,
+    companyName: companyName.present ? companyName.value : this.companyName,
+    photoPath: photoPath.present ? photoPath.value : this.photoPath,
     biometricLock: biometricLock ?? this.biometricLock,
     remindClockIn: remindClockIn ?? this.remindClockIn,
     remindClockOut: remindClockOut ?? this.remindClockOut,
@@ -806,6 +973,13 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
           ? data.ramadanEndMin.value
           : this.ramadanEndMin,
       joinDate: data.joinDate.present ? data.joinDate.value : this.joinDate,
+      dob: data.dob.present ? data.dob.value : this.dob,
+      phone: data.phone.present ? data.phone.value : this.phone,
+      officeId: data.officeId.present ? data.officeId.value : this.officeId,
+      companyName: data.companyName.present
+          ? data.companyName.value
+          : this.companyName,
+      photoPath: data.photoPath.present ? data.photoPath.value : this.photoPath,
       biometricLock: data.biometricLock.present
           ? data.biometricLock.value
           : this.biometricLock,
@@ -840,6 +1014,11 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
           ..write('ramadanStartMin: $ramadanStartMin, ')
           ..write('ramadanEndMin: $ramadanEndMin, ')
           ..write('joinDate: $joinDate, ')
+          ..write('dob: $dob, ')
+          ..write('phone: $phone, ')
+          ..write('officeId: $officeId, ')
+          ..write('companyName: $companyName, ')
+          ..write('photoPath: $photoPath, ')
           ..write('biometricLock: $biometricLock, ')
           ..write('remindClockIn: $remindClockIn, ')
           ..write('remindClockOut: $remindClockOut, ')
@@ -849,7 +1028,7 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     gender,
     yearlyHolidayAllocation,
@@ -866,11 +1045,16 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
     ramadanStartMin,
     ramadanEndMin,
     joinDate,
+    dob,
+    phone,
+    officeId,
+    companyName,
+    photoPath,
     biometricLock,
     remindClockIn,
     remindClockOut,
     remindWeekly,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -891,6 +1075,11 @@ class UserSetting extends DataClass implements Insertable<UserSetting> {
           other.ramadanStartMin == this.ramadanStartMin &&
           other.ramadanEndMin == this.ramadanEndMin &&
           other.joinDate == this.joinDate &&
+          other.dob == this.dob &&
+          other.phone == this.phone &&
+          other.officeId == this.officeId &&
+          other.companyName == this.companyName &&
+          other.photoPath == this.photoPath &&
           other.biometricLock == this.biometricLock &&
           other.remindClockIn == this.remindClockIn &&
           other.remindClockOut == this.remindClockOut &&
@@ -914,6 +1103,11 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
   final Value<int> ramadanStartMin;
   final Value<int> ramadanEndMin;
   final Value<DateTime?> joinDate;
+  final Value<DateTime?> dob;
+  final Value<String?> phone;
+  final Value<String?> officeId;
+  final Value<String?> companyName;
+  final Value<String?> photoPath;
   final Value<bool> biometricLock;
   final Value<bool> remindClockIn;
   final Value<bool> remindClockOut;
@@ -935,6 +1129,11 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
     this.ramadanStartMin = const Value.absent(),
     this.ramadanEndMin = const Value.absent(),
     this.joinDate = const Value.absent(),
+    this.dob = const Value.absent(),
+    this.phone = const Value.absent(),
+    this.officeId = const Value.absent(),
+    this.companyName = const Value.absent(),
+    this.photoPath = const Value.absent(),
     this.biometricLock = const Value.absent(),
     this.remindClockIn = const Value.absent(),
     this.remindClockOut = const Value.absent(),
@@ -957,6 +1156,11 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
     this.ramadanStartMin = const Value.absent(),
     this.ramadanEndMin = const Value.absent(),
     this.joinDate = const Value.absent(),
+    this.dob = const Value.absent(),
+    this.phone = const Value.absent(),
+    this.officeId = const Value.absent(),
+    this.companyName = const Value.absent(),
+    this.photoPath = const Value.absent(),
     this.biometricLock = const Value.absent(),
     this.remindClockIn = const Value.absent(),
     this.remindClockOut = const Value.absent(),
@@ -981,6 +1185,11 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
     Expression<int>? ramadanStartMin,
     Expression<int>? ramadanEndMin,
     Expression<DateTime>? joinDate,
+    Expression<DateTime>? dob,
+    Expression<String>? phone,
+    Expression<String>? officeId,
+    Expression<String>? companyName,
+    Expression<String>? photoPath,
     Expression<bool>? biometricLock,
     Expression<bool>? remindClockIn,
     Expression<bool>? remindClockOut,
@@ -1005,6 +1214,11 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
       if (ramadanStartMin != null) 'ramadan_start_min': ramadanStartMin,
       if (ramadanEndMin != null) 'ramadan_end_min': ramadanEndMin,
       if (joinDate != null) 'join_date': joinDate,
+      if (dob != null) 'dob': dob,
+      if (phone != null) 'phone': phone,
+      if (officeId != null) 'office_id': officeId,
+      if (companyName != null) 'company_name': companyName,
+      if (photoPath != null) 'photo_path': photoPath,
       if (biometricLock != null) 'biometric_lock': biometricLock,
       if (remindClockIn != null) 'remind_clock_in': remindClockIn,
       if (remindClockOut != null) 'remind_clock_out': remindClockOut,
@@ -1029,6 +1243,11 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
     Value<int>? ramadanStartMin,
     Value<int>? ramadanEndMin,
     Value<DateTime?>? joinDate,
+    Value<DateTime?>? dob,
+    Value<String?>? phone,
+    Value<String?>? officeId,
+    Value<String?>? companyName,
+    Value<String?>? photoPath,
     Value<bool>? biometricLock,
     Value<bool>? remindClockIn,
     Value<bool>? remindClockOut,
@@ -1052,6 +1271,11 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
       ramadanStartMin: ramadanStartMin ?? this.ramadanStartMin,
       ramadanEndMin: ramadanEndMin ?? this.ramadanEndMin,
       joinDate: joinDate ?? this.joinDate,
+      dob: dob ?? this.dob,
+      phone: phone ?? this.phone,
+      officeId: officeId ?? this.officeId,
+      companyName: companyName ?? this.companyName,
+      photoPath: photoPath ?? this.photoPath,
       biometricLock: biometricLock ?? this.biometricLock,
       remindClockIn: remindClockIn ?? this.remindClockIn,
       remindClockOut: remindClockOut ?? this.remindClockOut,
@@ -1112,6 +1336,21 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
     if (joinDate.present) {
       map['join_date'] = Variable<DateTime>(joinDate.value);
     }
+    if (dob.present) {
+      map['dob'] = Variable<DateTime>(dob.value);
+    }
+    if (phone.present) {
+      map['phone'] = Variable<String>(phone.value);
+    }
+    if (officeId.present) {
+      map['office_id'] = Variable<String>(officeId.value);
+    }
+    if (companyName.present) {
+      map['company_name'] = Variable<String>(companyName.value);
+    }
+    if (photoPath.present) {
+      map['photo_path'] = Variable<String>(photoPath.value);
+    }
     if (biometricLock.present) {
       map['biometric_lock'] = Variable<bool>(biometricLock.value);
     }
@@ -1146,6 +1385,11 @@ class UserSettingsCompanion extends UpdateCompanion<UserSetting> {
           ..write('ramadanStartMin: $ramadanStartMin, ')
           ..write('ramadanEndMin: $ramadanEndMin, ')
           ..write('joinDate: $joinDate, ')
+          ..write('dob: $dob, ')
+          ..write('phone: $phone, ')
+          ..write('officeId: $officeId, ')
+          ..write('companyName: $companyName, ')
+          ..write('photoPath: $photoPath, ')
           ..write('biometricLock: $biometricLock, ')
           ..write('remindClockIn: $remindClockIn, ')
           ..write('remindClockOut: $remindClockOut, ')
@@ -3525,6 +3769,11 @@ typedef $$UserSettingsTableCreateCompanionBuilder =
       Value<int> ramadanStartMin,
       Value<int> ramadanEndMin,
       Value<DateTime?> joinDate,
+      Value<DateTime?> dob,
+      Value<String?> phone,
+      Value<String?> officeId,
+      Value<String?> companyName,
+      Value<String?> photoPath,
       Value<bool> biometricLock,
       Value<bool> remindClockIn,
       Value<bool> remindClockOut,
@@ -3548,6 +3797,11 @@ typedef $$UserSettingsTableUpdateCompanionBuilder =
       Value<int> ramadanStartMin,
       Value<int> ramadanEndMin,
       Value<DateTime?> joinDate,
+      Value<DateTime?> dob,
+      Value<String?> phone,
+      Value<String?> officeId,
+      Value<String?> companyName,
+      Value<String?> photoPath,
       Value<bool> biometricLock,
       Value<bool> remindClockIn,
       Value<bool> remindClockOut,
@@ -3640,6 +3894,31 @@ class $$UserSettingsTableFilterComposer
 
   ColumnFilters<DateTime> get joinDate => $composableBuilder(
     column: $table.joinDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get dob => $composableBuilder(
+    column: $table.dob,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get phone => $composableBuilder(
+    column: $table.phone,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get officeId => $composableBuilder(
+    column: $table.officeId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get companyName => $composableBuilder(
+    column: $table.companyName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get photoPath => $composableBuilder(
+    column: $table.photoPath,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3753,6 +4032,31 @@ class $$UserSettingsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get dob => $composableBuilder(
+    column: $table.dob,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get phone => $composableBuilder(
+    column: $table.phone,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get officeId => $composableBuilder(
+    column: $table.officeId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get companyName => $composableBuilder(
+    column: $table.companyName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get photoPath => $composableBuilder(
+    column: $table.photoPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get biometricLock => $composableBuilder(
     column: $table.biometricLock,
     builder: (column) => ColumnOrderings(column),
@@ -3853,6 +4157,23 @@ class $$UserSettingsTableAnnotationComposer
   GeneratedColumn<DateTime> get joinDate =>
       $composableBuilder(column: $table.joinDate, builder: (column) => column);
 
+  GeneratedColumn<DateTime> get dob =>
+      $composableBuilder(column: $table.dob, builder: (column) => column);
+
+  GeneratedColumn<String> get phone =>
+      $composableBuilder(column: $table.phone, builder: (column) => column);
+
+  GeneratedColumn<String> get officeId =>
+      $composableBuilder(column: $table.officeId, builder: (column) => column);
+
+  GeneratedColumn<String> get companyName => $composableBuilder(
+    column: $table.companyName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get photoPath =>
+      $composableBuilder(column: $table.photoPath, builder: (column) => column);
+
   GeneratedColumn<bool> get biometricLock => $composableBuilder(
     column: $table.biometricLock,
     builder: (column) => column,
@@ -3921,6 +4242,11 @@ class $$UserSettingsTableTableManager
                 Value<int> ramadanStartMin = const Value.absent(),
                 Value<int> ramadanEndMin = const Value.absent(),
                 Value<DateTime?> joinDate = const Value.absent(),
+                Value<DateTime?> dob = const Value.absent(),
+                Value<String?> phone = const Value.absent(),
+                Value<String?> officeId = const Value.absent(),
+                Value<String?> companyName = const Value.absent(),
+                Value<String?> photoPath = const Value.absent(),
                 Value<bool> biometricLock = const Value.absent(),
                 Value<bool> remindClockIn = const Value.absent(),
                 Value<bool> remindClockOut = const Value.absent(),
@@ -3942,6 +4268,11 @@ class $$UserSettingsTableTableManager
                 ramadanStartMin: ramadanStartMin,
                 ramadanEndMin: ramadanEndMin,
                 joinDate: joinDate,
+                dob: dob,
+                phone: phone,
+                officeId: officeId,
+                companyName: companyName,
+                photoPath: photoPath,
                 biometricLock: biometricLock,
                 remindClockIn: remindClockIn,
                 remindClockOut: remindClockOut,
@@ -3965,6 +4296,11 @@ class $$UserSettingsTableTableManager
                 Value<int> ramadanStartMin = const Value.absent(),
                 Value<int> ramadanEndMin = const Value.absent(),
                 Value<DateTime?> joinDate = const Value.absent(),
+                Value<DateTime?> dob = const Value.absent(),
+                Value<String?> phone = const Value.absent(),
+                Value<String?> officeId = const Value.absent(),
+                Value<String?> companyName = const Value.absent(),
+                Value<String?> photoPath = const Value.absent(),
                 Value<bool> biometricLock = const Value.absent(),
                 Value<bool> remindClockIn = const Value.absent(),
                 Value<bool> remindClockOut = const Value.absent(),
@@ -3986,6 +4322,11 @@ class $$UserSettingsTableTableManager
                 ramadanStartMin: ramadanStartMin,
                 ramadanEndMin: ramadanEndMin,
                 joinDate: joinDate,
+                dob: dob,
+                phone: phone,
+                officeId: officeId,
+                companyName: companyName,
+                photoPath: photoPath,
                 biometricLock: biometricLock,
                 remindClockIn: remindClockIn,
                 remindClockOut: remindClockOut,
