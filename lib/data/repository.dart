@@ -259,7 +259,9 @@ class Repository {
   Stream<List<NoteModel>> watchNotes() =>
       db.watchNotes().map((rows) => rows.map(_toNote).toList());
 
-  Future<void> saveNote(NoteModel n) async {
+  /// Inserts or updates a note; returns its id (so the editor can keep saving
+  /// the same row instead of creating duplicates).
+  Future<int> saveNote(NoteModel n) async {
     final companion = NotesCompanion(
       id: n.id == null ? const Value.absent() : Value(n.id!),
       kind: Value(n.kind.db),
@@ -273,11 +275,11 @@ class Repository {
       updatedAt: Value(DateTime.now()),
     );
     if (n.id == null) {
-      await db.into(db.notes).insert(companion);
-    } else {
-      await (db.update(db.notes)..where((t) => t.id.equals(n.id!)))
-          .write(companion);
+      return db.into(db.notes).insert(companion);
     }
+    await (db.update(db.notes)..where((t) => t.id.equals(n.id!)))
+        .write(companion);
+    return n.id!;
   }
 
   Future<void> deleteNote(int id) async =>
