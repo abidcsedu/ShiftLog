@@ -34,6 +34,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
   int? _id; // tracks the saved row so re-saves update instead of duplicating
   late final TextEditingController _title;
   late final TextEditingController _body;
+  String _prevBody = '';
   late final TextEditingController _tags;
   late List<_ChecklistEntry> _items;
   late bool _pinned;
@@ -52,6 +53,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     _folderId = e?.folderId ?? widget.initialFolderId;
     _title = TextEditingController(text: e?.title ?? '');
     _body = TextEditingController(text: e?.body ?? '');
+    _prevBody = _body.text;
+    _body.addListener(_continueListOnNewline);
     _tags = TextEditingController(text: e?.tags.join(', ') ?? '');
     _items = [
       for (final c in (e?.checklist ?? const <ChecklistItem>[]))
@@ -169,6 +172,82 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     });
   }
 
+  static final _numbered = RegExp(r'^(\d+)\. ');
+
+  /// Toggle a bullet ("• ") or numbered ("1. ") prefix on the body's current
+  /// line.
+  void _toggleListPrefix(bool numbered) {
+    final text = _body.text;
+    final caret = _body.selection.baseOffset < 0
+        ? text.length
+        : _body.selection.baseOffset;
+    final lineStart = text.lastIndexOf('\n', caret - 1) + 1;
+    var lineEnd = text.indexOf('\n', lineStart);
+    if (lineEnd < 0) lineEnd = text.length;
+    final line = text.substring(lineStart, lineEnd);
+
+    String newLine;
+    final hasBullet = line.startsWith('• ');
+    final numMatch = _numbered.firstMatch(line);
+    if (hasBullet) {
+      newLine = numbered ? '1. ${line.substring(2)}' : line.substring(2);
+    } else if (numMatch != null) {
+      final rest = line.substring(numMatch.group(0)!.length);
+      newLine = numbered ? rest : '• $rest';
+    } else {
+      newLine = (numbered ? '1. ' : '• ') + line;
+    }
+    final updated = text.replaceRange(lineStart, lineEnd, newLine);
+    final delta = newLine.length - line.length;
+    _prevBody = updated;
+    _body.value = TextEditingValue(
+      text: updated,
+      selection: TextSelection.collapsed(offset: caret + delta),
+    );
+  }
+
+  /// When Enter is pressed on a bullet/numbered line, continue the list (or end
+  /// it if the line was empty).
+  void _continueListOnNewline() {
+    final text = _body.text;
+    final sel = _body.selection;
+    if (text.length != _prevBody.length + 1 ||
+        !sel.isCollapsed ||
+        sel.start == 0 ||
+        text[sel.start - 1] != '\n') {
+      _prevBody = text;
+      return;
+    }
+    final caret = sel.start;
+    final lineStart = text.lastIndexOf('\n', caret - 2) + 1;
+    final line = text.substring(lineStart, caret - 1);
+    final bullet = line.startsWith('• ');
+    final num = _numbered.firstMatch(line);
+    if (!bullet && num == null) {
+      _prevBody = text;
+      return;
+    }
+    final content =
+        bullet ? line.substring(2) : line.substring(num!.group(0)!.length);
+    String updated;
+    int offset;
+    if (content.trim().isEmpty) {
+      // Empty item → drop the marker and end the list.
+      updated = text.replaceRange(lineStart, caret, '');
+      offset = lineStart;
+    } else {
+      final marker =
+          bullet ? '• ' : '${int.parse(num!.group(1)!) + 1}. ';
+      updated = text.replaceRange(caret, caret, marker);
+      offset = caret + marker.length;
+    }
+    _prevBody = updated;
+    _body.value = TextEditingValue(
+      text: updated,
+      selection: TextSelection.collapsed(offset: offset),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
@@ -259,7 +338,26 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                   ?.copyWith(height: 1.5, color: scheme.onSurfaceVariant),
               decoration: _bare(context, 'Start writing…'),
             ),
-            const SizedBox(height: 24),
+            // Formatting toolbar: bullet / numbered list on the current line.
+            Row(
+              children: [
+                IconButton(
+                  tooltip: 'Bullet list',
+                  visualDensity: VisualDensity.compact,
+                  icon: Icon(Icons.format_list_bulleted,
+                      size: 20, color: scheme.onSurfaceVariant),
+                  onPressed: () => _toggleListPrefix(false),
+                ),
+                IconButton(
+                  tooltip: 'Numbered list',
+                  visualDensity: VisualDensity.compact,
+                  icon: Icon(Icons.format_list_numbered,
+                      size: 20, color: scheme.onSurfaceVariant),
+                  onPressed: () => _toggleListPrefix(true),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             _SectionLabel('Action items', scheme: scheme),
             const SizedBox(height: 4),
             for (var i = 0; i < _items.length; i++)
