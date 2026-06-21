@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/enums.dart';
 import '../domain/models.dart';
+import '../services/notification_service.dart';
 import '../state/providers.dart';
 import 'widgets/folder_picker.dart';
 
@@ -17,16 +18,22 @@ class NoteEditorScreen extends ConsumerStatefulWidget {
   ConsumerState<NoteEditorScreen> createState() => _NoteEditorScreenState();
 }
 
-/// One editable checklist row: text controller + done / due / priority.
+/// One editable checklist row: text controller + id / done / due / priority.
 class _ChecklistEntry {
+  final int id;
   final TextEditingController controller;
   bool done;
   DateTime? due;
   int priority;
-  _ChecklistEntry(String text, {this.done = false, this.due, this.priority = 0})
+  _ChecklistEntry(String text,
+      {required this.id, this.done = false, this.due, this.priority = 0})
       : controller = TextEditingController(text: text);
   void dispose() => controller.dispose();
 }
+
+/// A positive 31-bit id (also usable as an Android notification id).
+int _newItemId() =>
+    DateTime.now().microsecondsSinceEpoch & 0x7FFFFFFF;
 
 const _priorityColors = [
   null, // 0 none
@@ -49,6 +56,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
   late List<_ChecklistEntry> _items;
   late bool _pinned;
   final _newItem = TextEditingController();
+  // Item ids we've scheduled/seen, so stale reminders get cancelled on save.
+  final Set<int> _seenItemIds = {};
 
   bool get _isEdit => widget.existing != null;
 
@@ -69,8 +78,12 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     _items = [
       for (final c in (e?.checklist ?? const <ChecklistItem>[]))
         _ChecklistEntry(c.text,
-            done: c.done, due: c.due, priority: c.priority),
+            id: c.id == 0 ? _newItemId() : c.id,
+            done: c.done,
+            due: c.due,
+            priority: c.priority),
     ];
+    _seenItemIds.addAll(_items.map((e) => e.id));
     _pinned = e?.pinned ?? false;
   }
 
@@ -102,7 +115,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
   void _flushPendingItem() {
     final t = _newItem.text.trim();
     if (t.isEmpty) return;
-    _items.add(_ChecklistEntry(t));
+    _items.add(_ChecklistEntry(t, id: _newItemId()));
     _newItem.clear();
   }
 
@@ -111,8 +124,23 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
         for (final it in _items)
           if (it.controller.text.trim().isNotEmpty)
             ChecklistItem(it.controller.text.trim(),
-                done: it.done, due: it.due, priority: it.priority),
+                id: it.id, done: it.done, due: it.due, priority: it.priority),
       ];
+
+  /// (Re)schedule due reminders for the current items; cancel any that were
+  /// removed, completed, cleared, or moved to the past.
+  Future<void> _syncItemReminders(List<ChecklistItem> items) async {
+    final notif = NotificationService();
+    for (final id in _seenItemIds) {
+      await notif.cancelItemReminder(id);
+    }
+    for (final it in items) {
+      _seenItemIds.add(it.id);
+      if (!it.done && it.due != null) {
+        await notif.scheduleItemReminder(it.id, it.text, it.due!);
+      }
+    }
+  }
 
   /// Writes the note to the database without navigating. Safe to call on back,
   /// on app background, etc. Deletes the row if the note is now empty.
@@ -128,6 +156,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
         await repo.deleteNote(_id!);
         _id = null;
       }
+      await _syncItemReminders(const []); // cancel any scheduled reminders
       return;
     }
     final tags = _tags.text
@@ -148,6 +177,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
       updatedAt: DateTime.now(),
     ));
     _id = id; // keep editing the same row on subsequent saves
+    await _syncItemReminders(items);
   }
 
   Future<void> _save() async {
@@ -179,7 +209,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     final t = _newItem.text.trim();
     if (t.isEmpty) return;
     setState(() {
-      _items.add(_ChecklistEntry(t));
+      _items.add(_ChecklistEntry(t, id: _newItemId()));
       _newItem.clear();
     });
   }

@@ -48,20 +48,24 @@ class LeaveRecordModel {
 }
 
 class ChecklistItem {
+  final int id; // stable id (also used as the reminder notification id); 0 = none
   final String text;
   final bool done;
   final DateTime? due; // optional due date/time
   final int priority; // 0 none, 1 low, 2 medium, 3 high
   const ChecklistItem(this.text,
-      {this.done = false, this.due, this.priority = 0});
+      {this.id = 0, this.done = false, this.due, this.priority = 0});
 
-  ChecklistItem copyWith({String? text, bool? done, DateTime? due, int? priority}) =>
+  ChecklistItem copyWith(
+          {int? id, String? text, bool? done, DateTime? due, int? priority}) =>
       ChecklistItem(text ?? this.text,
+          id: id ?? this.id,
           done: done ?? this.done,
           due: due ?? this.due,
           priority: priority ?? this.priority);
 
   Map<String, dynamic> toJson() => {
+        if (id != 0) 'id': id,
         'text': text,
         'done': done,
         if (due != null) 'due': due!.toIso8601String(),
@@ -69,6 +73,7 @@ class ChecklistItem {
       };
   static ChecklistItem fromJson(Map<String, dynamic> j) => ChecklistItem(
         j['text'] as String? ?? '',
+        id: j['id'] as int? ?? 0,
         done: j['done'] as bool? ?? false,
         due: j['due'] == null ? null : DateTime.tryParse(j['due'] as String),
         priority: j['priority'] as int? ?? 0,

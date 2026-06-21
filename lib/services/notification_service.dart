@@ -151,6 +151,30 @@ class NotificationService {
     );
   }
 
+  /// Schedule a one-off reminder for a due action item. [id] is the item's
+  /// stable id, reused as the notification id so it can be cancelled/updated.
+  Future<void> scheduleItemReminder(int id, String text, DateTime due) async {
+    if (!_ready || !_tzReady || id == 0) return;
+    if (!due.isAfter(DateTime.now())) return;
+    try {
+      await _plugin.zonedSchedule(
+        id: id,
+        title: 'Task due',
+        body: text,
+        scheduledDate: tz.TZDateTime.from(due, tz.local),
+        notificationDetails: _reminderDetails,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      );
+    } catch (e) {
+      debugPrint('scheduleItemReminder failed: $e');
+    }
+  }
+
+  Future<void> cancelItemReminder(int id) async {
+    if (id == 0) return;
+    await _cancel(id);
+  }
+
   Future<void> _cancel(int id) async {
     try {
       await _plugin.cancel(id: id);
