@@ -165,27 +165,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
     final company = ref.watch(companyNameProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        actions: [
-          IconButton.filledTonal(
-            icon: const Icon(Icons.add),
-            tooltip: 'Add session or leave',
-            onPressed: _showAddMenu,
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          // --- Profile header: photo, greeting, company, tenure ---
-          _ProfileHeader(
-            name: name,
-            company: company,
-            photoPath: photoPath,
-            onTapPhoto: () => showPhotoSheet(context, ref),
-          ),
-          const SizedBox(height: 18),
+      // No app bar — the profile header sits at the very top (under the status
+      // bar) so there's no empty gap above it.
+      body: SafeArea(
+        bottom: false,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+          children: [
+            // --- Profile header: photo, name, company + Add action ---
+            _ProfileHeader(
+              name: name,
+              company: company,
+              photoPath: photoPath,
+              onTapPhoto: () => showPhotoSheet(context, ref),
+              onAdd: _showAddMenu,
+            ),
+            const SizedBox(height: 18),
           // --- Hero: date, live status, progress ring toward daily target ---
           _TimerHero(
             date: _prettyDate(DateTime.now()),
@@ -378,7 +373,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   child: _SessionTile(session: s),
                 )),
           const SizedBox(height: 24),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -619,12 +615,14 @@ class _ProfileHeader extends StatelessWidget {
   final String? company;
   final String? photoPath;
   final VoidCallback onTapPhoto;
+  final VoidCallback onAdd;
 
   const _ProfileHeader({
     required this.name,
     required this.company,
     required this.photoPath,
     required this.onTapPhoto,
+    required this.onAdd,
   });
 
   @override
@@ -665,6 +663,12 @@ class _ProfileHeader extends StatelessWidget {
               ],
             ],
           ),
+        ),
+        const SizedBox(width: 8),
+        IconButton.filledTonal(
+          icon: const Icon(Icons.add),
+          tooltip: 'Add session or leave',
+          onPressed: onAdd,
         ),
       ],
     );
