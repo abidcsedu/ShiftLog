@@ -18,17 +18,29 @@ class NoteEditorScreen extends ConsumerStatefulWidget {
   ConsumerState<NoteEditorScreen> createState() => _NoteEditorScreenState();
 }
 
-/// One editable checklist row: text controller + id / done / due / priority.
+/// One editable checklist row: text controller + id / done / due / priority,
+/// plus an optional one level of subtasks.
 class _ChecklistEntry {
   final int id;
   final TextEditingController controller;
   bool done;
   DateTime? due;
   int priority;
+  final List<_ChecklistEntry> children;
   _ChecklistEntry(String text,
-      {required this.id, this.done = false, this.due, this.priority = 0})
-      : controller = TextEditingController(text: text);
-  void dispose() => controller.dispose();
+      {required this.id,
+      this.done = false,
+      this.due,
+      this.priority = 0,
+      List<_ChecklistEntry>? children})
+      : controller = TextEditingController(text: text),
+        children = children ?? [];
+  void dispose() {
+    controller.dispose();
+    for (final c in children) {
+      c.dispose();
+    }
+  }
 }
 
 /// A positive 31-bit id (also usable as an Android notification id).
@@ -77,15 +89,25 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     _tags = TextEditingController(text: e?.tags.join(', ') ?? '');
     _items = [
       for (final c in (e?.checklist ?? const <ChecklistItem>[]))
-        _ChecklistEntry(c.text,
-            id: c.id == 0 ? _newItemId() : c.id,
-            done: c.done,
-            due: c.due,
-            priority: c.priority),
+        _entryFrom(c),
     ];
-    _seenItemIds.addAll(_items.map((e) => e.id));
+    for (final it in _items) {
+      _seenItemIds.add(it.id);
+      _seenItemIds.addAll(it.children.map((c) => c.id));
+    }
     _pinned = e?.pinned ?? false;
   }
+
+  /// Builds an editable entry (and its subtasks) from a stored item, assigning
+  /// fresh ids to any legacy items that lack one.
+  _ChecklistEntry _entryFrom(ChecklistItem c) => _ChecklistEntry(
+        c.text,
+        id: c.id == 0 ? _newItemId() : c.id,
+        done: c.done,
+        due: c.due,
+        priority: c.priority,
+        children: [for (final sc in c.children) _entryFrom(sc)],
+      );
 
   @override
   void dispose() {
@@ -120,25 +142,43 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
   }
 
   /// Current non-empty checklist items, read live from their controllers.
+  ChecklistItem _collect(_ChecklistEntry it, {bool withChildren = true}) =>
+      ChecklistItem(it.controller.text.trim(),
+          id: it.id,
+          done: it.done,
+          due: it.due,
+          priority: it.priority,
+          children: withChildren
+              ? [
+                  for (final c in it.children)
+                    if (c.controller.text.trim().isNotEmpty) _collect(c)
+                ]
+              : const []);
+
   List<ChecklistItem> _collectItems() => [
         for (final it in _items)
-          if (it.controller.text.trim().isNotEmpty)
-            ChecklistItem(it.controller.text.trim(),
-                id: it.id, done: it.done, due: it.due, priority: it.priority),
+          if (it.controller.text.trim().isNotEmpty) _collect(it),
       ];
 
-  /// (Re)schedule due reminders for the current items; cancel any that were
-  /// removed, completed, cleared, or moved to the past.
+  /// (Re)schedule due reminders for the current items (and subtasks); cancel
+  /// any that were removed, completed, cleared, or moved to the past.
   Future<void> _syncItemReminders(List<ChecklistItem> items) async {
     final notif = NotificationService();
     for (final id in _seenItemIds) {
       await notif.cancelItemReminder(id);
     }
-    for (final it in items) {
+    Future<void> schedule(ChecklistItem it) async {
       _seenItemIds.add(it.id);
       if (!it.done && it.due != null) {
         await notif.scheduleItemReminder(it.id, it.text, it.due!);
       }
+      for (final c in it.children) {
+        await schedule(c);
+      }
+    }
+
+    for (final it in items) {
+      await schedule(it);
     }
   }
 
@@ -234,9 +274,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
         d.year, d.month, d.day, t?.hour ?? 9, t?.minute ?? 0));
   }
 
-  /// Per-item options: priority, due date/time, delete.
-  void _itemOptions(int index) {
-    final it = _items[index];
+  /// Per-item options: priority, due date/time, optional add-subtask, delete.
+  void _itemOptions(_ChecklistEntry it,
+      {VoidCallback? onAddSubtask, required VoidCallback onDelete}) {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -290,6 +330,16 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                     setSheet(() {});
                   },
                 ),
+                if (onAddSubtask != null)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.subdirectory_arrow_right),
+                    title: const Text('Add subtask'),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      onAddSubtask();
+                    },
+                  ),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: Icon(Icons.delete_outline,
@@ -299,7 +349,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                           TextStyle(color: Theme.of(ctx).colorScheme.error)),
                   onTap: () {
                     Navigator.pop(ctx);
-                    setState(() => _items.removeAt(index).dispose());
+                    onDelete();
                   },
                 ),
               ],
@@ -498,14 +548,37 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
             const SizedBox(height: 12),
             _SectionLabel('Action items', scheme: scheme),
             const SizedBox(height: 4),
-            for (var i = 0; i < _items.length; i++)
+            for (var i = 0; i < _items.length; i++) ...[
               _ChecklistRow(
                 key: ObjectKey(_items[i]),
                 entry: _items[i],
                 onToggle: () =>
                     setState(() => _items[i].done = !_items[i].done),
-                onOptions: () => _itemOptions(i),
+                onOptions: () => _itemOptions(
+                  _items[i],
+                  onAddSubtask: () => setState(() => _items[i]
+                      .children
+                      .add(_ChecklistEntry('', id: _newItemId()))),
+                  onDelete: () => setState(() => _items.removeAt(i).dispose()),
+                ),
               ),
+              // Subtasks, indented one level.
+              for (var c = 0; c < _items[i].children.length; c++)
+                Padding(
+                  padding: const EdgeInsets.only(left: 32),
+                  child: _ChecklistRow(
+                    key: ObjectKey(_items[i].children[c]),
+                    entry: _items[i].children[c],
+                    onToggle: () => setState(() => _items[i].children[c].done =
+                        !_items[i].children[c].done),
+                    onOptions: () => _itemOptions(
+                      _items[i].children[c],
+                      onDelete: () => setState(
+                          () => _items[i].children.removeAt(c).dispose()),
+                    ),
+                  ),
+                ),
+            ],
             Row(
               children: [
                 Expanded(
