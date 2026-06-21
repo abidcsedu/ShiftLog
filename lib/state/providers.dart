@@ -94,6 +94,10 @@ final notesProvider = StreamProvider<List<NoteModel>>(
 final foldersProvider = StreamProvider<List<FolderModel>>(
     (ref) => ref.watch(repositoryProvider).watchFolders());
 
+// User-defined custom note types (names only).
+final noteTypesProvider = StreamProvider<List<String>>(
+    (ref) => ref.watch(repositoryProvider).watchNoteTypes());
+
 // Day → leave duration map (full/half), expanded from leave records. Used for
 // expected-day reduction and calendar markers.
 final leaveDaysMapProvider = Provider<Map<String, LeaveType>>((ref) {

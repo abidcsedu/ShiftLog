@@ -262,7 +262,7 @@ class Repository {
   // --- notes ---
   NoteModel _toNote(Note r) => NoteModel(
         id: r.id,
-        kind: NoteKindX.fromDb(r.kind),
+        kind: r.kind,
         date: r.date,
         title: r.title,
         body: r.body,
@@ -285,7 +285,7 @@ class Repository {
   Future<int> saveNote(NoteModel n) async {
     final companion = NotesCompanion(
       id: n.id == null ? const Value.absent() : Value(n.id!),
-      kind: Value(n.kind.db),
+      kind: Value(n.kind),
       date: Value(n.date),
       title: Value(n.title),
       body: Value(n.body),
@@ -309,6 +309,17 @@ class Repository {
   // --- note folders (with subfolders via parentId) ---
   FolderModel _toFolder(Folder r) =>
       FolderModel(id: r.id, name: r.name, parentId: r.parentId);
+
+  // --- custom note types ---
+  Stream<List<String>> watchNoteTypes() =>
+      db.watchNoteTypes().map((rows) => rows.map((r) => r.name).toList());
+
+  Future<void> createNoteType(String name) =>
+      db.into(db.noteTypes).insert(
+          NoteTypesCompanion.insert(name: name, createdAt: DateTime.now()));
+
+  Future<void> deleteNoteType(String name) async =>
+      (db.delete(db.noteTypes)..where((t) => t.name.equals(name))).go();
 
   Stream<List<FolderModel>> watchFolders() =>
       db.watchFolders().map((rows) => rows.map(_toFolder).toList());
@@ -401,6 +412,7 @@ class Repository {
         for (final r in await db.foldersOnce())
           {'id': r.id, 'name': r.name, 'parentId': r.parentId},
       ],
+      'noteTypes': [for (final r in await db.noteTypesOnce()) r.name],
       'notes': [
         for (final r in await db.notesOnce())
           {
@@ -433,6 +445,11 @@ class Repository {
       await db.delete(db.dayOverrides).go();
       await db.delete(db.notes).go();
       await db.delete(db.folders).go();
+      await db.delete(db.noteTypes).go();
+      for (final name in ((map['noteTypes'] as List?) ?? const [])) {
+        await db.into(db.noteTypes).insert(NoteTypesCompanion.insert(
+            name: name as String, createdAt: DateTime.now()));
+      }
 
       final s = map['settings'] as Map<String, dynamic>?;
       if (s != null) {

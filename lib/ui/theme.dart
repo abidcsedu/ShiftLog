@@ -136,6 +136,13 @@ class ModeVisual {
   const ModeVisual(this.color, this.icon);
 }
 
+/// Icon + accent for a note type (built-in or custom).
+({IconData icon, Color color}) noteTypeVisual(String kind) => switch (kind) {
+      kNoteDaily => (icon: Icons.today, color: const Color(0xFF3B82F6)),
+      kNoteMeeting => (icon: Icons.groups, color: const Color(0xFF0D9488)),
+      _ => (icon: Icons.label_outline, color: const Color(0xFF64748B)),
+    };
+
 ModeVisual modeVisual(WorkMode mode) => switch (mode) {
       WorkMode.office => const ModeVisual(Color(0xFF3B82F6), Icons.business),
       WorkMode.wfh => const ModeVisual(Color(0xFF2DD4BF), Icons.home_work),

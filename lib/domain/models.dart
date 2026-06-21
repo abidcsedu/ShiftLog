@@ -93,7 +93,7 @@ class FolderModel {
 /// A work note — daily journal or meeting note — with optional action items.
 class NoteModel {
   final int? id;
-  final NoteKind kind;
+  final String kind; // 'daily' | 'meeting' | a custom type name
   final DateTime date;
   final String title;
   final String body;

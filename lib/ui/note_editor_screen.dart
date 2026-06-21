@@ -5,6 +5,7 @@ import '../domain/enums.dart';
 import '../domain/models.dart';
 import '../services/notification_service.dart';
 import '../state/providers.dart';
+import 'theme.dart';
 import 'widgets/folder_picker.dart';
 
 /// Full-screen editor for a daily/meeting note with a folder, editable
@@ -57,7 +58,7 @@ const _priorityLabels = ['None', 'Low', 'Medium', 'High'];
 
 class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     with WidgetsBindingObserver {
-  late NoteKind _kind;
+  late String _kind;
   late DateTime _date;
   late int? _folderId;
   int? _id; // tracks the saved row so re-saves update instead of duplicating
@@ -79,7 +80,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     WidgetsBinding.instance.addObserver(this);
     final e = widget.existing;
     _id = e?.id;
-    _kind = e?.kind ?? NoteKind.daily;
+    _kind = e?.kind ?? kNoteDaily;
     _date = e?.date ?? DateTime.now();
     _folderId = e?.folderId ?? widget.initialFolderId;
     _title = TextEditingController(text: e?.title ?? '');
@@ -243,6 +244,46 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
   Future<void> _pickFolder() async {
     final result = await showFolderPicker(context, ref, selected: _folderId);
     if (result != null) setState(() => _folderId = result.id);
+  }
+
+  /// Choose the note type — built-ins, any custom types, or add a new one.
+  Future<void> _pickType() async {
+    final custom = ref.read(noteTypesProvider).value ?? const [];
+    final types = [kNoteDaily, kNoteMeeting, ...custom];
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final t in types)
+              ListTile(
+                leading: Icon(noteTypeVisual(t).icon,
+                    color: noteTypeVisual(t).color),
+                title: Text(noteTypeLabel(t)),
+                trailing: _kind == t ? const Icon(Icons.check) : null,
+                onTap: () => Navigator.pop(ctx, t),
+              ),
+            ListTile(
+              leading: Icon(Icons.add,
+                  color: Theme.of(ctx).colorScheme.primary),
+              title: Text('New type',
+                  style:
+                      TextStyle(color: Theme.of(ctx).colorScheme.primary)),
+              onTap: () async {
+                final name = await promptFolderName(ctx, title: 'New note type');
+                if (name == null) return;
+                await ref.read(repositoryProvider).createNoteType(name);
+                if (ctx.mounted) Navigator.pop(ctx, name);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (result != null) setState(() => _kind = result);
   }
 
   void _addItem() {
@@ -484,11 +525,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
               runSpacing: 8,
               children: [
                 _MetaChip(
-                  icon: _kind == NoteKind.meeting ? Icons.groups : Icons.today,
-                  label: _kind.label,
-                  onTap: () => setState(() => _kind = _kind == NoteKind.daily
-                      ? NoteKind.meeting
-                      : NoteKind.daily),
+                  icon: noteTypeVisual(_kind).icon,
+                  label: noteTypeLabel(_kind),
+                  onTap: _pickType,
                 ),
                 _MetaChip(
                   icon: Icons.event_outlined,

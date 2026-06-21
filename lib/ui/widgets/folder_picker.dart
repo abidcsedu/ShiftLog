@@ -142,18 +142,19 @@ List<FolderRow> flattenFolders(List<FolderModel> all) {
   return out;
 }
 
-/// Prompts for a folder name. Returns the trimmed name, or null if cancelled.
-Future<String?> promptFolderName(BuildContext context, {String? initial}) {
+/// Prompts for a name. Returns the trimmed name, or null if cancelled.
+Future<String?> promptFolderName(BuildContext context,
+    {String? initial, String? title}) {
   final controller = TextEditingController(text: initial ?? '');
   return showDialog<String>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: Text(initial == null ? 'New folder' : 'Rename folder'),
+      title: Text(title ?? (initial == null ? 'New folder' : 'Rename folder')),
       content: TextField(
         controller: controller,
         autofocus: true,
         textCapitalization: TextCapitalization.sentences,
-        decoration: const InputDecoration(hintText: 'Folder name'),
+        decoration: const InputDecoration(hintText: 'Name'),
         onSubmitted: (v) => Navigator.pop(ctx, v.trim()),
       ),
       actions: [

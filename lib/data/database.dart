@@ -87,6 +87,13 @@ class LeaveRecords extends Table {
   DateTimeColumn get appliedOn => dateTime()();
 }
 
+// User-defined note types (in addition to the built-in 'daily'/'meeting').
+class NoteTypes extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get name => text()();
+  DateTimeColumn get createdAt => dateTime()();
+}
+
 // Folders (and subfolders via parentId) that organise notes.
 class Folders extends Table {
   IntColumn get id => integer().autoIncrement()();
@@ -128,14 +135,15 @@ class DayOverrides extends Table {
   DayOverrides,
   LeaveRecords,
   Notes,
-  Folders
+  Folders,
+  NoteTypes
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
       : super(executor ?? driftDatabase(name: 'shiftlog'));
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -183,6 +191,9 @@ class AppDatabase extends _$AppDatabase {
             await m.addColumn(userSettings, userSettings.officeId);
             await m.addColumn(userSettings, userSettings.companyName);
             await m.addColumn(userSettings, userSettings.photoPath);
+          }
+          if (from < 11) {
+            await m.createTable(noteTypes);
           }
         },
       );
@@ -242,4 +253,8 @@ class AppDatabase extends _$AppDatabase {
   Stream<List<Folder>> watchFolders() =>
       (select(folders)..orderBy([(t) => OrderingTerm.asc(t.name)])).watch();
   Future<List<Folder>> foldersOnce() => select(folders).get();
+
+  Stream<List<NoteType>> watchNoteTypes() =>
+      (select(noteTypes)..orderBy([(t) => OrderingTerm.asc(t.name)])).watch();
+  Future<List<NoteType>> noteTypesOnce() => select(noteTypes).get();
 }

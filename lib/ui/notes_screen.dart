@@ -5,6 +5,7 @@ import '../domain/enums.dart';
 import '../domain/models.dart';
 import '../state/providers.dart';
 import 'note_editor_screen.dart';
+import 'theme.dart';
 import 'widgets/folder_picker.dart';
 
 class NotesScreen extends ConsumerStatefulWidget {
@@ -16,8 +17,14 @@ class NotesScreen extends ConsumerStatefulWidget {
 
 class _NotesScreenState extends ConsumerState<NotesScreen> {
   String _query = '';
-  NoteKind? _filter; // null = all
+  String? _filter; // null = all; else a note-type key
   int? _folderId; // current folder (null = top level)
+
+  Future<void> _newType() async {
+    final name = await promptFolderName(context, title: 'New note type');
+    if (name == null) return;
+    await ref.read(repositoryProvider).createNoteType(name);
+  }
 
   void _openNote(NoteModel? note) {
     Navigator.of(context).push(MaterialPageRoute(
@@ -63,6 +70,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
     final scheme = Theme.of(context).colorScheme;
     final allNotes = ref.watch(notesProvider).value ?? const [];
     final allFolders = ref.watch(foldersProvider).value ?? const [];
+    final customTypes = ref.watch(noteTypesProvider).value ?? const [];
     final searching = _query.trim().isNotEmpty;
     final q = _query.trim().toLowerCase();
 
@@ -139,20 +147,28 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
               ),
             ),
           ),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _filterChip('All', null),
+          // Type filter — scrolls horizontally as custom types are added.
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              children: [
+                _filterChip('All', null),
+                const SizedBox(width: 8),
+                _filterChip('Daily', kNoteDaily),
+                const SizedBox(width: 8),
+                _filterChip('Meeting', kNoteMeeting),
+                for (final t in customTypes) ...[
                   const SizedBox(width: 8),
-                  _filterChip('Daily', NoteKind.daily),
-                  const SizedBox(width: 8),
-                  _filterChip('Meeting', NoteKind.meeting),
+                  _filterChip(t, t),
                 ],
-              ),
+                const SizedBox(width: 8),
+                ActionChip(
+                  avatar: const Icon(Icons.add, size: 18),
+                  label: const Text('Type'),
+                  onPressed: _newType,
+                ),
+              ],
             ),
           ),
           Expanded(
@@ -200,7 +216,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
         ),
       );
 
-  Widget _filterChip(String label, NoteKind? kind) => ChoiceChip(
+  Widget _filterChip(String label, String? kind) => ChoiceChip(
         label: Text(label),
         selected: _filter == kind,
         showCheckmark: false,
@@ -304,8 +320,8 @@ class _NoteCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final done = note.checklist.where((c) => c.done).length;
     final total = note.checklist.length;
-    final isMeeting = note.kind == NoteKind.meeting;
-    final accent = isMeeting ? const Color(0xFF0D9488) : scheme.primary;
+    final visual = noteTypeVisual(note.kind);
+    final accent = visual.color;
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       color: scheme.surfaceContainerHigh,
@@ -329,10 +345,9 @@ class _NoteCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(isMeeting ? Icons.groups : Icons.today,
-                            size: 13, color: accent),
+                        Icon(visual.icon, size: 13, color: accent),
                         const SizedBox(width: 4),
-                        Text(note.kind.label,
+                        Text(noteTypeLabel(note.kind),
                             style: TextStyle(
                                 color: accent,
                                 fontWeight: FontWeight.w600,
