@@ -71,6 +71,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
   late List<_ChecklistEntry> _items;
   late bool _pinned;
   final _newItem = TextEditingController();
+  final _newItemFocus = FocusNode();
   // Item ids we've scheduled/seen, so stale reminders get cancelled on save.
   final Set<int> _seenItemIds = {};
   bool _addingTask = false; // reveals the task section on demand
@@ -160,6 +161,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     _title.dispose();
     _body.dispose();
     _newItem.dispose();
+    _newItemFocus.dispose();
     for (final it in _items) {
       it.dispose();
     }
@@ -331,6 +333,8 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
       _items.add(_ChecklistEntry(t, id: _newItemId()));
       _newItem.clear();
     });
+    // Keep the field focused so the keyboard stays up for the next task.
+    _newItemFocus.requestFocus();
   }
 
   Future<void> _pickItemDue(_ChecklistEntry it) async {
@@ -655,8 +659,9 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                   Expanded(
                     child: TextField(
                       controller: _newItem,
+                      focusNode: _newItemFocus,
                       autofocus: _items.isEmpty,
-                      textInputAction: TextInputAction.done,
+                      textInputAction: TextInputAction.next,
                       decoration: _bare(context, 'Add a task'),
                       onSubmitted: (_) => _addItem(),
                     ),
