@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/enums.dart';
 import '../domain/models.dart';
+import '../domain/work_logic.dart';
 import '../services/notification_service.dart';
 import '../state/providers.dart';
 import 'theme.dart';
@@ -27,12 +28,14 @@ class _ChecklistEntry {
   bool done;
   DateTime? due;
   int priority;
+  String? recurrence;
   final List<_ChecklistEntry> children;
   _ChecklistEntry(String text,
       {required this.id,
       this.done = false,
       this.due,
       this.priority = 0,
+      this.recurrence,
       List<_ChecklistEntry>? children})
       : controller = TextEditingController(text: text),
         children = children ?? [];
@@ -70,6 +73,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
   final _newItem = TextEditingController();
   // Item ids we've scheduled/seen, so stale reminders get cancelled on save.
   final Set<int> _seenItemIds = {};
+  bool _addingTask = false; // reveals the task section on demand
 
   bool get _isEdit => widget.existing != null;
 
@@ -85,7 +89,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     _title = TextEditingController(text: e?.title ?? '');
     _body = TextEditingController(text: e?.body ?? '');
     _prevBody = _body.text;
-    _body.addListener(_continueListOnNewline);
+    _body.addListener(_onBodyChanged);
     _items = [
       for (final c in (e?.checklist ?? const <ChecklistItem>[]))
         _entryFrom(c),
@@ -105,8 +109,50 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
         done: c.done,
         due: c.due,
         priority: c.priority,
+        recurrence: c.recurrence,
         children: [for (final sc in c.children) _entryFrom(sc)],
       );
+
+  /// Toggle done — but completing a recurring item with a due date rolls it
+  /// forward to the next occurrence instead of just checking it off.
+  void _toggleEntry(_ChecklistEntry e) {
+    setState(() {
+      if (!e.done && e.recurrence != null && e.due != null) {
+        e.due = nextDue(e.due!, e.recurrence!);
+      } else {
+        e.done = !e.done;
+      }
+    });
+  }
+
+  /// Wraps a task row: swipe right to complete, swipe left to delete.
+  Widget _swipeRow(_ChecklistEntry e, VoidCallback onDelete, Widget child) {
+    final scheme = Theme.of(context).colorScheme;
+    return Dismissible(
+      key: ValueKey('dz-${e.id}'),
+      background: Container(
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(left: 22),
+        color: const Color(0xFF16A34A),
+        child: const Icon(Icons.check, color: Colors.white),
+      ),
+      secondaryBackground: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 22),
+        color: scheme.error,
+        child: const Icon(Icons.delete, color: Colors.white),
+      ),
+      confirmDismiss: (dir) async {
+        if (dir == DismissDirection.startToEnd) {
+          _toggleEntry(e);
+          return false; // complete, but keep the row
+        }
+        return true; // swipe-left → delete
+      },
+      onDismissed: (_) => onDelete(),
+      child: child,
+    );
+  }
 
   @override
   void dispose() {
@@ -146,6 +192,7 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
           done: it.done,
           due: it.due,
           priority: it.priority,
+          recurrence: it.recurrence,
           children: withChildren
               ? [
                   for (final c in it.children)
@@ -343,6 +390,32 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                       ),
                   ],
                 ),
+                const SizedBox(height: 16),
+                const Text('Repeat',
+                    style: TextStyle(
+                        fontWeight: FontWeight.w700, fontSize: 13)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    for (final r in const [
+                      null,
+                      'daily',
+                      'weekday',
+                      'weekly',
+                      'monthly'
+                    ])
+                      ChoiceChip(
+                        label: Text(recurrenceLabel(r)),
+                        selected: it.recurrence == r,
+                        showCheckmark: false,
+                        onSelected: (_) {
+                          setSheet(() {});
+                          setState(() => it.recurrence = r);
+                        },
+                      ),
+                  ],
+                ),
                 const Divider(height: 24),
                 ListTile(
                   contentPadding: EdgeInsets.zero,
@@ -394,74 +467,53 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
 
   static final _numbered = RegExp(r'^(\d+)\. ');
 
-  /// Toggle a bullet ("• ") or numbered ("1. ") prefix on the body's current
-  /// line.
-  void _toggleListPrefix(bool numbered) {
-    final text = _body.text;
-    final caret = _body.selection.baseOffset < 0
-        ? text.length
-        : _body.selection.baseOffset;
-    final lineStart = text.lastIndexOf('\n', caret - 1) + 1;
-    var lineEnd = text.indexOf('\n', lineStart);
-    if (lineEnd < 0) lineEnd = text.length;
-    final line = text.substring(lineStart, lineEnd);
-
-    String newLine;
-    final hasBullet = line.startsWith('• ');
-    final numMatch = _numbered.firstMatch(line);
-    if (hasBullet) {
-      newLine = numbered ? '1. ${line.substring(2)}' : line.substring(2);
-    } else if (numMatch != null) {
-      final rest = line.substring(numMatch.group(0)!.length);
-      newLine = numbered ? rest : '• $rest';
-    } else {
-      newLine = (numbered ? '1. ' : '• ') + line;
-    }
-    final updated = text.replaceRange(lineStart, lineEnd, newLine);
-    final delta = newLine.length - line.length;
-    _prevBody = updated;
-    _body.value = TextEditingValue(
-      text: updated,
-      selection: TextSelection.collapsed(offset: caret + delta),
-    );
-  }
-
-  /// When Enter is pressed on a bullet/numbered line, continue the list (or end
-  /// it if the line was empty).
-  void _continueListOnNewline() {
+  /// Body change handler: inline markdown shortcuts + list auto-continue.
+  void _onBodyChanged() {
     final text = _body.text;
     final sel = _body.selection;
-    if (text.length != _prevBody.length + 1 ||
-        !sel.isCollapsed ||
-        sel.start == 0 ||
-        text[sel.start - 1] != '\n') {
-      _prevBody = text;
-      return;
+    if (text.length == _prevBody.length + 1 && sel.isCollapsed && sel.start > 0) {
+      final ch = text[sel.start - 1];
+      if (ch == '\n') {
+        _handleNewline(text, sel.start);
+      } else if (ch == ' ') {
+        _handleSpaceShortcut(text, sel.start);
+      }
     }
-    final caret = sel.start;
+    _prevBody = _body.text;
+  }
+
+  /// "- " or "* " at the start of a line becomes a "• " bullet (Notion-style).
+  void _handleSpaceShortcut(String text, int caret) {
+    final lineStart = text.lastIndexOf('\n', caret - 2) + 1;
+    final token = text.substring(lineStart, caret); // includes the space
+    if (token == '- ' || token == '* ') {
+      final updated = text.replaceRange(lineStart, caret, '• ');
+      _body.value = TextEditingValue(
+        text: updated,
+        selection: TextSelection.collapsed(offset: lineStart + 2),
+      );
+    }
+  }
+
+  /// Enter on a bullet/numbered line continues the list (or ends it if empty).
+  void _handleNewline(String text, int caret) {
     final lineStart = text.lastIndexOf('\n', caret - 2) + 1;
     final line = text.substring(lineStart, caret - 1);
     final bullet = line.startsWith('• ');
     final num = _numbered.firstMatch(line);
-    if (!bullet && num == null) {
-      _prevBody = text;
-      return;
-    }
+    if (!bullet && num == null) return;
     final content =
         bullet ? line.substring(2) : line.substring(num!.group(0)!.length);
     String updated;
     int offset;
     if (content.trim().isEmpty) {
-      // Empty item → drop the marker and end the list.
       updated = text.replaceRange(lineStart, caret, '');
       offset = lineStart;
     } else {
-      final marker =
-          bullet ? '• ' : '${int.parse(num!.group(1)!) + 1}. ';
+      final marker = bullet ? '• ' : '${int.parse(num!.group(1)!) + 1}. ';
       updated = text.replaceRange(caret, caret, marker);
       offset = caret + marker.length;
     }
-    _prevBody = updated;
     _body.value = TextEditingValue(
       text: updated,
       selection: TextSelection.collapsed(offset: offset),
@@ -556,76 +608,75 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                   ?.copyWith(height: 1.5, color: scheme.onSurfaceVariant),
               decoration: _bare(context, 'Start writing…'),
             ),
-            // Formatting toolbar: bullet / numbered list on the current line.
-            Row(
-              children: [
-                IconButton(
-                  tooltip: 'Bullet list',
-                  visualDensity: VisualDensity.compact,
-                  icon: Icon(Icons.format_list_bulleted,
-                      size: 20, color: scheme.onSurfaceVariant),
-                  onPressed: () => _toggleListPrefix(false),
-                ),
-                IconButton(
-                  tooltip: 'Numbered list',
-                  visualDensity: VisualDensity.compact,
-                  icon: Icon(Icons.format_list_numbered,
-                      size: 20, color: scheme.onSurfaceVariant),
-                  onPressed: () => _toggleListPrefix(true),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _SectionLabel('Action items', scheme: scheme),
-            const SizedBox(height: 4),
-            for (var i = 0; i < _items.length; i++) ...[
-              _ChecklistRow(
-                key: ObjectKey(_items[i]),
-                entry: _items[i],
-                onToggle: () =>
-                    setState(() => _items[i].done = !_items[i].done),
-                onOptions: () => _itemOptions(
+            const SizedBox(height: 16),
+            // Tasks — shown only when there are tasks or you add one. Type
+            // "- " in the body for a bullet; tasks are the interactive to-dos.
+            if (_items.isNotEmpty || _addingTask) ...[
+              _SectionLabel('Tasks', scheme: scheme),
+              const SizedBox(height: 4),
+              for (var i = 0; i < _items.length; i++) ...[
+                _swipeRow(
                   _items[i],
-                  onAddSubtask: () => setState(() => _items[i]
-                      .children
-                      .add(_ChecklistEntry('', id: _newItemId()))),
-                  onDelete: () => setState(() => _items.removeAt(i).dispose()),
-                ),
-              ),
-              // Subtasks, indented one level.
-              for (var c = 0; c < _items[i].children.length; c++)
-                Padding(
-                  padding: const EdgeInsets.only(left: 32),
-                  child: _ChecklistRow(
-                    key: ObjectKey(_items[i].children[c]),
-                    entry: _items[i].children[c],
-                    onToggle: () => setState(() => _items[i].children[c].done =
-                        !_items[i].children[c].done),
+                  () => setState(() => _items.removeAt(i).dispose()),
+                  _ChecklistRow(
+                    entry: _items[i],
+                    onToggle: () => _toggleEntry(_items[i]),
                     onOptions: () => _itemOptions(
-                      _items[i].children[c],
-                      onDelete: () => setState(
-                          () => _items[i].children.removeAt(c).dispose()),
+                      _items[i],
+                      onAddSubtask: () => setState(() => _items[i]
+                          .children
+                          .add(_ChecklistEntry('', id: _newItemId()))),
+                      onDelete: () =>
+                          setState(() => _items.removeAt(i).dispose()),
                     ),
                   ),
                 ),
-            ],
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _newItem,
-                    textInputAction: TextInputAction.done,
-                    decoration: _bare(context, 'Add an action item'),
-                    onSubmitted: (_) => _addItem(),
+                for (var c = 0; c < _items[i].children.length; c++)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 32),
+                    child: _swipeRow(
+                      _items[i].children[c],
+                      () => setState(
+                          () => _items[i].children.removeAt(c).dispose()),
+                      _ChecklistRow(
+                        entry: _items[i].children[c],
+                        onToggle: () => _toggleEntry(_items[i].children[c]),
+                        onOptions: () => _itemOptions(
+                          _items[i].children[c],
+                          onDelete: () => setState(
+                              () => _items[i].children.removeAt(c).dispose()),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                IconButton(
-                  tooltip: 'Add item',
-                  icon: Icon(Icons.add_circle, color: scheme.primary),
-                  onPressed: _addItem,
-                ),
               ],
-            ),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _newItem,
+                      autofocus: _items.isEmpty,
+                      textInputAction: TextInputAction.done,
+                      decoration: _bare(context, 'Add a task'),
+                      onSubmitted: (_) => _addItem(),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Add task',
+                    icon: Icon(Icons.add_circle, color: scheme.primary),
+                    onPressed: _addItem,
+                  ),
+                ],
+              ),
+            ] else
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => setState(() => _addingTask = true),
+                  icon: const Icon(Icons.add_task, size: 18),
+                  label: const Text('Add task'),
+                ),
+              ),
           ],
         ),
       ),
@@ -707,10 +758,7 @@ class _ChecklistRow extends StatelessWidget {
   final VoidCallback onToggle;
   final VoidCallback onOptions;
   const _ChecklistRow(
-      {super.key,
-      required this.entry,
-      required this.onToggle,
-      required this.onOptions});
+      {required this.entry, required this.onToggle, required this.onOptions});
 
   @override
   Widget build(BuildContext context) {

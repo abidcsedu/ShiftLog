@@ -53,12 +53,14 @@ class ChecklistItem {
   final bool done;
   final DateTime? due; // optional due date/time
   final int priority; // 0 none, 1 low, 2 medium, 3 high
+  final String? recurrence; // null | 'daily' | 'weekday' | 'weekly' | 'monthly'
   final List<ChecklistItem> children; // one level of subtasks
   const ChecklistItem(this.text,
       {this.id = 0,
       this.done = false,
       this.due,
       this.priority = 0,
+      this.recurrence,
       this.children = const []});
 
   Map<String, dynamic> toJson() => {
@@ -67,6 +69,7 @@ class ChecklistItem {
         'done': done,
         if (due != null) 'due': due!.toIso8601String(),
         if (priority != 0) 'priority': priority,
+        if (recurrence != null) 'recurrence': recurrence,
         if (children.isNotEmpty)
           'children': children.map((c) => c.toJson()).toList(),
       };
@@ -76,6 +79,7 @@ class ChecklistItem {
         done: j['done'] as bool? ?? false,
         due: j['due'] == null ? null : DateTime.tryParse(j['due'] as String),
         priority: j['priority'] as int? ?? 0,
+        recurrence: j['recurrence'] as String?,
         children: ((j['children'] as List?) ?? const [])
             .map((e) => ChecklistItem.fromJson((e as Map).cast<String, dynamic>()))
             .toList(),

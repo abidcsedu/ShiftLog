@@ -172,6 +172,40 @@ Duration balance(Duration worked, Duration target) => worked - target;
 bool isOverdue(WorkSession s, DateTime now, {int hours = 16}) =>
     s.isOpen && now.difference(s.clockIn).inHours >= hours;
 
+/// Next due date for a recurring item, preserving the time of day.
+/// [recurrence]: 'daily' | 'weekday' | 'weekly' | 'monthly'.
+DateTime nextDue(DateTime from, String recurrence) {
+  switch (recurrence) {
+    case 'weekly':
+      return from.add(const Duration(days: 7));
+    case 'monthly':
+      // Same day next month, clamped to the month's length.
+      final m = from.month == 12 ? 1 : from.month + 1;
+      final y = from.month == 12 ? from.year + 1 : from.year;
+      final lastDay = DateTime(y, m + 1, 0).day;
+      final day = from.day > lastDay ? lastDay : from.day;
+      return DateTime(y, m, day, from.hour, from.minute);
+    case 'weekday':
+      var d = from.add(const Duration(days: 1));
+      while (d.weekday == DateTime.saturday || d.weekday == DateTime.sunday) {
+        d = d.add(const Duration(days: 1));
+      }
+      return d;
+    case 'daily':
+    default:
+      return from.add(const Duration(days: 1));
+  }
+}
+
+/// Human label for a recurrence key.
+String recurrenceLabel(String? r) => switch (r) {
+      'daily' => 'Daily',
+      'weekday' => 'Weekdays',
+      'weekly' => 'Weekly',
+      'monthly' => 'Monthly',
+      _ => 'None',
+    };
+
 /// Calendar-accurate length of service, split into years / months / days.
 class Tenure {
   final int years;
