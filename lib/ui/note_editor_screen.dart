@@ -772,63 +772,69 @@ class _ChecklistRow extends StatelessWidget {
         !entry.done &&
         entry.due!.isBefore(DateTime.now());
     final dueColor = overdue ? scheme.error : scheme.onSurfaceVariant;
-    return Row(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: 28,
-          child: Checkbox(
-            value: entry.done,
-            onChanged: (_) => onToggle(),
-            visualDensity: VisualDensity.compact,
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
+        // Checkbox + text on one line, vertically centered.
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: 28,
+              child: Checkbox(
+                value: entry.done,
+                onChanged: (_) => onToggle(),
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: TextField(
                 controller: entry.controller,
                 textCapitalization: TextCapitalization.sentences,
                 style: TextStyle(
-                  decoration:
-                      entry.done ? TextDecoration.lineThrough : null,
+                  decoration: entry.done ? TextDecoration.lineThrough : null,
                   color:
                       entry.done ? scheme.onSurfaceVariant : scheme.onSurface,
                 ),
                 decoration: _bare(context, 'Item'),
               ),
-              if (entry.due != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 2, bottom: 4),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.schedule, size: 13, color: dueColor),
-                      const SizedBox(width: 4),
-                      Text(_dueLabel(entry.due!),
-                          style: TextStyle(
-                              color: dueColor,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500)),
-                    ],
-                  ),
-                ),
-            ],
-          ),
+            ),
+            if (entry.priority > 0)
+              Padding(
+                padding: const EdgeInsets.only(left: 2),
+                child: Icon(Icons.flag,
+                    size: 16, color: _priorityColors[entry.priority]),
+              ),
+            IconButton(
+              icon: Icon(Icons.more_vert,
+                  size: 18, color: scheme.onSurfaceVariant),
+              onPressed: onOptions,
+            ),
+          ],
         ),
-        if (entry.priority > 0)
+        // Due chip, aligned under the text.
+        if (entry.due != null)
           Padding(
-            padding: const EdgeInsets.only(top: 8, left: 2),
-            child: Icon(Icons.flag,
-                size: 16, color: _priorityColors[entry.priority]),
+            padding: const EdgeInsets.only(left: 36, bottom: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.schedule, size: 13, color: dueColor),
+                const SizedBox(width: 4),
+                Text(_dueLabel(entry.due!),
+                    style: TextStyle(
+                        color: dueColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500)),
+                if (entry.recurrence != null) ...[
+                  const SizedBox(width: 8),
+                  Icon(Icons.repeat, size: 13, color: dueColor),
+                ],
+              ],
+            ),
           ),
-        IconButton(
-          icon: Icon(Icons.more_vert, size: 18, color: scheme.onSurfaceVariant),
-          onPressed: onOptions,
-        ),
       ],
     );
   }
