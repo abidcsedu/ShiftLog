@@ -266,9 +266,6 @@ class Repository {
         date: r.date,
         title: r.title,
         body: r.body,
-        tags: r.tags.isEmpty
-            ? const []
-            : r.tags.split(',').map((e) => e.trim()).toList(),
         checklist: (jsonDecode(r.checklist) as List)
             .map((e) => ChecklistItem.fromJson((e as Map).cast()))
             .toList(),
@@ -289,7 +286,6 @@ class Repository {
       date: Value(n.date),
       title: Value(n.title),
       body: Value(n.body),
-      tags: Value(n.tags.join(',')),
       checklist: Value(jsonEncode(n.checklist.map((e) => e.toJson()).toList())),
       pinned: Value(n.pinned),
       folderId: Value(n.folderId),
@@ -420,7 +416,6 @@ class Repository {
             'date': r.date.toIso8601String(),
             'title': r.title,
             'body': r.body,
-            'tags': r.tags,
             'checklist': r.checklist,
             'pinned': r.pinned,
             'folderId': r.folderId,
@@ -551,7 +546,6 @@ class Repository {
                 date: Value(DateTime.parse(j['date'] as String)),
                 title: Value(j['title'] as String? ?? ''),
                 body: Value(j['body'] as String? ?? ''),
-                tags: Value(j['tags'] as String? ?? ''),
                 checklist: Value(j['checklist'] as String? ?? '[]'),
                 pinned: Value(j['pinned'] as bool? ?? false),
                 folderId: Value(

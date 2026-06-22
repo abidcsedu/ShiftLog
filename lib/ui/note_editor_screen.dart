@@ -65,7 +65,6 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
   late final TextEditingController _title;
   late final TextEditingController _body;
   String _prevBody = '';
-  late final TextEditingController _tags;
   late List<_ChecklistEntry> _items;
   late bool _pinned;
   final _newItem = TextEditingController();
@@ -87,7 +86,6 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     _body = TextEditingController(text: e?.body ?? '');
     _prevBody = _body.text;
     _body.addListener(_continueListOnNewline);
-    _tags = TextEditingController(text: e?.tags.join(', ') ?? '');
     _items = [
       for (final c in (e?.checklist ?? const <ChecklistItem>[]))
         _entryFrom(c),
@@ -115,7 +113,6 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
     WidgetsBinding.instance.removeObserver(this);
     _title.dispose();
     _body.dispose();
-    _tags.dispose();
     _newItem.dispose();
     for (final it in _items) {
       it.dispose();
@@ -200,18 +197,12 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
       await _syncItemReminders(const []); // cancel any scheduled reminders
       return;
     }
-    final tags = _tags.text
-        .split(',')
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList();
     final id = await repo.saveNote(NoteModel(
       id: _id,
       kind: _kind,
       date: _date,
       title: _title.text.trim(),
       body: _body.text.trim(),
-      tags: tags,
       checklist: items,
       pinned: _pinned,
       folderId: _folderId,
@@ -634,16 +625,6 @@ class _NoteEditorScreenState extends ConsumerState<NoteEditorScreen>
                   onPressed: _addItem,
                 ),
               ],
-            ),
-            const SizedBox(height: 24),
-            _SectionLabel('Tags', scheme: scheme),
-            const SizedBox(height: 8),
-            TextField(
-              controller: _tags,
-              decoration: const InputDecoration(
-                hintText: 'comma, separated, tags',
-                prefixIcon: Icon(Icons.tag, size: 18),
-              ),
             ),
           ],
         ),

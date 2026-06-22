@@ -97,7 +97,6 @@ class NoteModel {
   final DateTime date;
   final String title;
   final String body;
-  final List<String> tags;
   final List<ChecklistItem> checklist;
   final bool pinned;
   final int? folderId; // null = unfiled
@@ -109,7 +108,6 @@ class NoteModel {
     required this.date,
     required this.title,
     required this.body,
-    this.tags = const [],
     this.checklist = const [],
     this.pinned = false,
     this.folderId,

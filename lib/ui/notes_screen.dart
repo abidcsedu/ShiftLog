@@ -84,8 +84,7 @@ class _NotesScreenState extends ConsumerState<NotesScreen> {
 
     bool matchesQuery(NoteModel n) =>
         n.title.toLowerCase().contains(q) ||
-        n.body.toLowerCase().contains(q) ||
-        n.tags.any((t) => t.toLowerCase().contains(q));
+        n.body.toLowerCase().contains(q);
 
     // When searching, look across every note; otherwise show this folder's.
     final notes = allNotes.where((n) {
